@@ -1,0 +1,114 @@
+function enterEditMode(element) {
+    const titleWrapper = element.parentElement;
+    const input = titleWrapper.querySelector('input');
+    const h2 = element.querySelector('h2');
+
+    element.classList.add('hidden');
+    input.classList.remove('hidden');
+    input.focus();
+    input.select();
+}
+
+function exitEditMode(inputElement) {
+    const titleWrapper = inputElement.parentElement;
+    const view = titleWrapper.querySelector('#header-view');
+    const h2 = view.querySelector('h2');
+
+    if (inputElement.value.trim() !== "") {
+        h2.innerText = inputElement.value;
+    } else {
+        inputElement.value = h2.innerText;
+    }
+
+    inputElement.classList.add('hidden');
+    view.classList.remove('hidden');
+}
+
+function addNewList() {
+    const container = document.getElementById('extra-lists-container');
+    const inputElement = document.getElementById('new-list-input');
+    const listTitle = inputElement.value.trim() || "New List";
+    
+    const newListHTML = `
+        <section class="w-full max-w-md shrink-0">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700 transition-colors duration-300">
+                <div class="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between group gap-4 transition-colors duration-300">
+                    <div class="flex-1 min-w-0 relative">
+                        <div id="header-view" onclick="enterEditMode(this)"
+                            class="flex items-center gap-2 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-md px-2 py-1 -ml-2 transition-all">
+                            <h2 id="display-text" class="text-xl font-bold text-slate-800 dark:text-slate-100 truncate transition-colors duration-300">${listTitle}</h2>
+
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </div>
+
+                        <input id="header-input" type="text" value="My Tasks"
+                            class="hidden w-full absolute inset-0 text-xl font-bold text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border-2 border-blue-500 rounded-md px-2 focus:outline-none shadow-inner transition-colors duration-300"
+                            onblur="exitEditMode(this)"
+                            onkeydown="if(event.key === 'Enter') exitEditMode(this)">
+                    </div>
+                </div>
+
+                <div class="p-8 text-center text-slate-400">
+                    Add tasks below...
+                </div>
+
+                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 transition-colors duration-300">
+                    <form class="flex gap-2">
+                        <input type="text" placeholder="Add a new task..."
+                            class="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/40 transition-all">
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors">
+                            Add
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', newListHTML);
+    
+    inputElement.value = '';
+}
+
+function setupThemeToggler() {
+    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        themeToggleLightIcon.classList.remove('hidden');
+    } else {
+        themeToggleDarkIcon.classList.remove('hidden');
+    }
+
+    const themeToggleBtn = document.getElementById('theme-toggle');
+
+    function toggleTheme() {
+        themeToggleDarkIcon.classList.toggle('hidden');
+        themeToggleLightIcon.classList.toggle('hidden');
+
+        if (localStorage.getItem('color-theme')) {
+            if (localStorage.getItem('color-theme') === 'light') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+            }
+        } else {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+            }
+        }
+    }
+
+    themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+document.addEventListener('DOMContentLoaded', setupThemeToggler)
