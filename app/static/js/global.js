@@ -7,7 +7,7 @@ function addNewList(event) {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    fetch(`/new-list`, {
+    fetch(`/api/new-list`, {
         method: 'POST',
         body: JSON.stringify({
             title: listTitle
@@ -45,7 +45,7 @@ function addNewTask(event, listId) {
     const emptyListElement = document.getElementById(`empty-state-${listId}`)
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    fetch(`/list-id=${listId}/new-task`, {
+    fetch(`/api/lists/${listId}/task`, {
         method: 'POST',
         body: JSON.stringify({content: taskContent}),
         headers: {
@@ -75,7 +75,6 @@ function addNewTask(event, listId) {
 function enterEditMode(element) {
     const titleWrapper = element.parentElement;
     const input = titleWrapper.querySelector('input');
-    const h2 = element.querySelector('h2');
 
     element.classList.add('hidden');
     input.classList.remove('hidden');
@@ -85,7 +84,7 @@ function enterEditMode(element) {
 
 function exitEditMode(inputElement) {
     const titleWrapper = inputElement.parentElement;
-    const view = titleWrapper.querySelector('#header-view');
+    const view = titleWrapper.querySelector('.header-view');
     const h2 = view.querySelector('h2');
 
     if (inputElement.value.trim() !== "") {
@@ -98,6 +97,26 @@ function exitEditMode(inputElement) {
     view.classList.remove('hidden');
 }
 
+function saveTitle(input, listId) {
+    exitEditMode(input);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(`/api/lists/${listId}/title`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ title: input.value })
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Server rejected the request.');
+        }
+    })
+    .catch(err => console.error("Save Error:", err));
+}
 
 
 function setupThemeToggler() {

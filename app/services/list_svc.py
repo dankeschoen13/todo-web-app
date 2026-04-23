@@ -40,6 +40,27 @@ class ListSvc:
         return new_list
 
     @classmethod
+    def update_list(cls, list_id: int, new_title: str) -> List | None:
+
+        if not new_title or not new_title.strip():
+            new_title = "My List"
+
+        existing_list = cls.get_list_by_id(list_id)
+        existing_list.title = new_title
+
+        try:
+            db.session.commit()
+
+        except IntegrityError as e:
+            logger.error(f"Unable to edit list title: {e}")
+
+            db.session.rollback()
+            raise ValueError("Unable to edit list title")
+
+        return existing_list
+
+
+    @classmethod
     def create_task(cls, list_id: int, content: str) -> List | None:
         parent_list = cls.get_list_by_id(list_id)
 

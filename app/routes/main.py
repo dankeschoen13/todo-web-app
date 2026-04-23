@@ -28,7 +28,7 @@ def index():
     )
 
 
-@main_bp.post('/new-list')
+@main_bp.post('/api/new-list')
 def create_list():
     data = request.get_json()
     title = data.get('title')
@@ -43,7 +43,20 @@ def create_list():
         return {"error": str(e)}, 400
 
 
-@main_bp.post('/list-id=<int:list_id>/new-task')
+@main_bp.patch('/api/lists/<int:list_id>/title')
+def edit_list(list_id):
+    data = request.get_json()
+    new_title = data.get('title')
+
+    try:
+        ListSvc.update_list(list_id, new_title)
+        return "", 204
+
+    except ValueError as e:
+        return {"error": str(e)}, 400
+
+
+@main_bp.post('/api/lists/<int:list_id>/task')
 def create_task(list_id):
     data = request.get_json()
     content = data.get('content')
