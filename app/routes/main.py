@@ -28,7 +28,7 @@ def index():
     )
 
 
-@main_bp.post('/create-list')
+@main_bp.post('/new-list')
 def create_list():
     data = request.get_json()
     title = data.get('title')
@@ -36,8 +36,23 @@ def create_list():
     try:
         new_list = ListSvc.create_list(current_user, title)
         return render_template(
-            'components/new-task.html',
-            new_list=new_list,
+            'components/task-list.html',
+            todo_list=new_list,
+        )
+    except ValueError as e:
+        return {"error": str(e)}, 400
+
+
+@main_bp.post('/list-id=<int:list_id>/new-task')
+def create_task(list_id):
+    data = request.get_json()
+    content = data.get('content')
+
+    try:
+        new_task = ListSvc.create_task(list_id, content)
+        return render_template(
+            'components/task-item.html',
+            task=new_task,
         )
     except ValueError as e:
         return {"error": str(e)}, 400

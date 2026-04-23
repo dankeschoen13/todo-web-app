@@ -1,3 +1,77 @@
+function addNewList(event) {
+    if (event) event.preventDefault();
+
+    const container = document.getElementById('extra-lists-container');
+    const inputElement = document.getElementById('new-list-input');
+    const listTitle = inputElement.value.trim() || "New List";
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(`/new-list`, {
+        method: 'POST',
+        body: JSON.stringify({
+            title: listTitle
+        }),
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Server rejected the request.');
+        }
+        return res.text();
+    })
+    .then(htmlSnippet => {
+        container.insertAdjacentHTML('beforeend', htmlSnippet);
+        inputElement.value = '';
+    })
+    .catch(error => {
+        console.error("Error creating list:", error);
+        alert("Unable to save list. Please try again.");
+    });
+}
+
+function addNewTask(event, listId) {
+    if (event) event.preventDefault();
+
+    const inputElement = document.getElementById(`new-task-input-${listId}`)
+    const taskContent = inputElement.value.trim();
+
+    if (!taskContent) return;
+
+    const ulElement = document.getElementById(`task-list-${listId}`);
+    const emptyListElement = document.getElementById(`empty-state-${listId}`)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(`/list-id=${listId}/new-task`, {
+        method: 'POST',
+        body: JSON.stringify({content: taskContent}),
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Server rejected the request.');
+        }
+        return res.text();
+    })
+    .then(htmlSnippet => {
+        ulElement.insertAdjacentHTML('beforeend', htmlSnippet);
+        inputElement.value = '';
+        if (emptyListElement) {
+            emptyListElement.remove();
+        }
+    })
+    .catch(error => {
+        console.error("Error creating list:", error);
+        alert("Unable to save list. Please try again.");
+    });
+}
+
 function enterEditMode(element) {
     const titleWrapper = element.parentElement;
     const input = titleWrapper.querySelector('input');
@@ -24,40 +98,7 @@ function exitEditMode(inputElement) {
     view.classList.remove('hidden');
 }
 
-function addNewList(event) {
-    if (event) event.preventDefault();
 
-    const container = document.getElementById('extra-lists-container');
-    const inputElement = document.getElementById('new-list-input');
-    const listTitle = inputElement.value.trim() || "New List";
-
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/create-list`, {
-        method: 'POST',
-        body: JSON.stringify({
-            title: listTitle
-        }),
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
-        return res.text();
-    })
-    .then(htmlSnippet => {
-        container.insertAdjacentHTML('beforeend', htmlSnippet);
-        inputElement.value = '';
-    })
-    .catch(error => {
-        console.error("Error creating list:", error);
-        alert("Unable to save list. Please try again.");
-    });
-}
 
 function setupThemeToggler() {
     const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
