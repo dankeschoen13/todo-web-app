@@ -26,7 +26,8 @@
     </div>
 </div>
 
-<div class="w-full columns-1 md:columns-2 lg:columns-3 gap-6">
+<div id="masonry-wrapper"
+     class="w-full mx-auto columns-1 sm:columns-[380px] gap-6 transition-all duration-500 {{ 'cmw-380' if user_lists|length == 1 else 'cmw-768' if user_lists|length == 2 else 'cmw-1280' }}">
 
     {% for todo_list in user_lists %}
         {% include "components/task-list.html" %}

@@ -1,3 +1,25 @@
+/**
+ * Dynamically adjusts the max-width of the masonry wrapper based on the number of task lists.
+ *
+ * This prevents the CSS column layout from stretching to the edges when there are
+ * fewer lists than the maximum allowed columns, ensuring the grid stays centered.
+ *
+ * @returns {void}
+ */
+function updateMasonryLayout() {
+    const wrapper = document.getElementById('masonry-wrapper');
+    const listCount = wrapper.querySelectorAll('section').length;
+
+    if (listCount === 1) {
+        wrapper.style.maxWidth = '380px';
+    } else if (listCount === 2) {
+        wrapper.style.maxWidth = '768px';
+    } else {
+        wrapper.style.maxWidth = '1280px';
+    }
+}
+
+
 function addNewList(event) {
     if (event) event.preventDefault();
 
@@ -26,6 +48,7 @@ function addNewList(event) {
     .then(htmlSnippet => {
         container.insertAdjacentHTML('beforeend', htmlSnippet);
         inputElement.value = '';
+        updateMasonryLayout();
     })
     .catch(error => {
         console.error("Error creating list:", error);
