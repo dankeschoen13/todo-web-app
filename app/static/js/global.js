@@ -20,6 +20,13 @@ function updateMasonryLayout() {
 }
 
 
+/**
+ * Creates a new task list via an API POST request and dynamically injects
+ * the returned HTML snippet into the DOM. Also triggers a masonry layout update.
+ *
+ * @param {Event} [event] - The optional form submission or click event.
+ * @returns {void}
+ */
 function addNewList(event) {
     if (event) event.preventDefault();
 
@@ -56,6 +63,15 @@ function addNewList(event) {
     });
 }
 
+
+/**
+ * Adds a new task to a specific list via an API POST request, dynamically
+ * updates the UI, and removes the "empty state" placeholder if it exists.
+ *
+ * @param {Event} [event] - The optional form submission or click event.
+ * @param {number} listId - The unique database ID of the parent list.
+ * @returns {void}
+ */
 function addNewTask(event, listId) {
     if (event) event.preventDefault();
 
@@ -95,6 +111,14 @@ function addNewTask(event, listId) {
     });
 }
 
+
+/**
+ * Transitions a list's header from display mode to edit mode by hiding
+ * the heading text and revealing the text input field.
+ *
+ * @param {HTMLElement} element - The clickable header view container.
+ * @returns {void}
+ */
 function enterEditMode(element) {
     const titleWrapper = element.parentElement;
     const input = titleWrapper.querySelector('input');
@@ -120,6 +144,15 @@ function exitEditMode(inputElement) {
     view.classList.remove('hidden');
 }
 
+
+/**
+ * Saves an updated list title to the backend via an API PATCH request.
+ * Automatically exits edit mode before sending the request.
+ *
+ * @param {HTMLInputElement} input - The text input field containing the new title.
+ * @param {number} listId - The unique database ID of the list being updated.
+ * @returns {void}
+ */
 function saveTitle(input, listId) {
     exitEditMode(input);
 
@@ -142,6 +175,13 @@ function saveTitle(input, listId) {
 }
 
 
+/**
+ * Initializes the dark/light mode theme toggler. Checks system preferences
+ * or localStorage for the initial state, updates the UI icons, and binds
+ * the toggle button click listener.
+ *
+ * @returns {void}
+ */
 function setupThemeToggler() {
     const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
     const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
