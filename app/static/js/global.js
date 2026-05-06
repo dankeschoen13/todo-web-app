@@ -221,4 +221,55 @@ function setupThemeToggler() {
     themeToggleBtn.addEventListener('click', toggleTheme);
 }
 
+
+/**
+ * Listens for checkbox changes within the masonry wrapper and triggers
+ * the API call to toggle the task's completion status in the database.
+ *
+ * @param {Event} event - The change event from the DOM.
+ * @returns {void}
+ */
+function checkBoxListener(event) {
+    if (event.target && event.target.classList.contains('task-checkbox')) {
+        const checkbox = event.target;
+        const checkboxID = checkbox.id.split("-").pop();
+
+        updateTaskStatus(checkboxID, checkbox);
+    }
+}
+
+/**
+ * Sends a PATCH request to toggle a task's completion status.
+ * Reverts the UI state if the server request fails.
+ *
+ * @param {string} taskId - The database ID of the task.
+ * @param {HTMLInputElement} checkbox - The checkbox element toggled by the user.
+ * @returns {void}
+ */
+function updateTaskStatus(taskId, checkbox) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(`/api/task/${taskId}/toggle`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Server rejected the request.');
+        }
+    })
+    .catch(err => {
+        console.error("Save Error:", err);
+        // Rollback the UI if the fetch fails
+        checkbox.checked = !checkbox.checked;
+        alert("Failed to update task. Please check your connection.");
+    });
+}
+
+const listWrapper = document.getElementById('masonry-wrapper')
+
+listWrapper.addEventListener('change', checkBoxListener)
 document.addEventListener('DOMContentLoaded', setupThemeToggler)
