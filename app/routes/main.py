@@ -50,10 +50,11 @@ def edit_list(list_id):
 
     try:
         ListSvc.update_list(list_id, new_title)
-        return "", 204
 
     except ValueError as e:
         return {"error": str(e)}, 400
+
+    return "", 204
 
 
 @main_bp.post('/api/lists/<int:list_id>/task')
@@ -69,3 +70,12 @@ def create_task(list_id):
         )
     except ValueError as e:
         return {"error": str(e)}, 400
+
+
+@main_bp.patch('/api/task/<int:task_id>/toggle')
+def complete_task(task_id):
+    try:
+        ListSvc.complete_task(task_id)
+    except ValueError as e:
+        return {"error": str(e)}, 400
+    return "", 204
