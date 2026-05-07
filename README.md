@@ -1,62 +1,48 @@
-# Custom Flask Boilerplate
+# Flask Todo Application
 
-A robust, reusable Flask starter template designed for scalable web applications. This boilerplate is pre-configured with PostgreSQL for local development and sets the foundation for custom UI design without the bloat of utility frameworks.
+A modern, responsive, full-stack Todo application built with Flask. This project focuses on a seamless user experience, featuring a dynamic masonry grid layout and optimistic UI updates for instant feedback.
 
-## 🚀 Tech Stack
+## ✨ Features
 
-* **Framework:** Flask
-* **Database ORM:** SQLAlchemy
-* **Database:** PostgreSQL (Local & Production)
-* **Migrations:** Flask-Migrate (Alembic)
-* **Templating:** Jinja2
-* **Frontend:** Custom CSS architecture (No Flask-Bootstrap or utility frameworks)
+* **Frictionless Onboarding:** Automatic "Guest User" shadow account creation so users can try the app instantly without registering.
+* **Smart Layout:** A fully responsive, Google Keep-style masonry grid that automatically centers and adjusts based on the number of active lists.
+* **Optimistic UI:** Tasks and lists update instantly in the browser before the server responds, providing a lightning-fast native app feel.
+* **In-Place Editing:** Click-to-edit list titles with seamless transitions.
+* **Dark/Light Mode:** Full theme toggling built with Tailwind CSS.
 
-## 📋 Prerequisites
+## 🛠️ Tech Stack
 
-Before you begin, ensure you have the following installed:
-* Python 3.10+
-* PostgreSQL (running locally)
-* `psycopg2-binary` or `psycopg` (included in requirements)
+* **Backend:** Python, Flask, SQLAlchemy (PostgreSQL)
+* **Frontend:** HTML5, Jinja2 Templates, Vanilla JavaScript (Fetch API)
+* **Styling:** Tailwind CSS 
+* **Architecture:** Decoupled Service Layer for clean database interactions.
 
-## 🛠️ Local Development Setup
+## 🚀 Local Development Setup
 
-**1. Clone the repository for your new project:**
-```bash
-git clone <your-repo-url> my-new-project
-cd my-new-project
-```
+1. **Clone the repository:**
+   ```bash
+   git clone <your-repo-url>
+   cd <your-repo-name>
+   ```
 
-**2. Create and activate a virtual environment:**
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On macOS/Linux
-```
+2. **Create and activate a virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
 
-**3. Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-**4. Set up environment variables:**
+4. **Set up the Database:**
+   * Ensure PostgreSQL is running locally.
+   * Create a local database (e.g., `todo_app_db`).
+   * Set your environment variables (e.g., `DATABASE_URL`, `FLASK_SECRET_KEY`).
 
-Create a .env file in the root directory and add your PostgreSQL credentials:
-```bash
-FLASK_APP=run.py
-FLASK_DEBUG=1
-SECRET_KEY=your-secret-key-here
-DATABASE_URL=postgresql://username:password@localhost:5432/your_database_name
-```
-
-**5. Initialize and run database migrations:**
-```bash
-flask db init
-flask db migrate -m "Initial migration"
-flask db upgrade
-```
-
-**6. Run the application:**
-```bash
-flask run
-```
-
-Your app will be available at http://127.0.0.1:5000.
+5. **Run the application:**
+   ```bash
+   flask run
+   ```
+   *The app will be available at http://127.0.0.1:5000*
