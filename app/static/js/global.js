@@ -221,6 +221,7 @@ function setupThemeToggler() {
     themeToggleBtn.addEventListener('click', toggleTheme);
 }
 
+// EVENT LISTENERS
 
 /**
  * Listens for checkbox changes within the masonry wrapper and triggers
@@ -229,14 +230,22 @@ function setupThemeToggler() {
  * @param {Event} event - The change event from the DOM.
  * @returns {void}
  */
-function checkBoxListener(event) {
-    if (event.target && event.target.classList.contains('task-checkbox')) {
-        const checkbox = event.target;
-        const checkboxID = checkbox.id.split("-").pop();
+function taskActionsListener(event) {
+    const target = event.target;
 
-        updateTaskStatus(checkboxID, checkbox);
+    if (target.classList.contains('task-checkbox')) {
+        const taskID = target.id.split("-").pop();
+        updateTaskStatus(taskID, target);
+    }
+
+    const deleteBtn = target.closest('.delete-task-btn')
+    if (deleteBtn) {
+        const taskID = deleteBtn.id.split("-").pop();
+        const taskItemElement = deleteBtn.closest('li');
+        deleteTask(taskID, taskItemElement);
     }
 }
+
 
 /**
  * Sends a PATCH request to toggle a task's completion status.
@@ -269,7 +278,45 @@ function updateTaskStatus(taskId, checkbox) {
     });
 }
 
-const listWrapper = document.getElementById('masonry-wrapper')
 
-listWrapper.addEventListener('change', checkBoxListener)
+/**
+ * Sends a DELETE request to remove a task.
+ * Optimistically removes the item from the DOM, but restores it if the server fails.
+ *
+ * @param {string} taskId - The database ID of the task.
+ * @param {HTMLElement} taskElement - The <li> element being deleted.
+ * @returns {void}
+ */
+function deleteTask(taskId, taskElement) {
+    const parentElement = taskElement.parentElement;
+
+    taskElement.remove();
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch(`/api/task/${taskId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Server rejected the request.');
+        }
+    })
+    .catch(err => {
+        console.error("Delete Error:", err);
+        // Rollback the UI if the delete fails
+        parentElement.appendChild(taskElement);
+        alert("Failed to delete task. Please check your connection.");
+    });
+}
+
+
+const listWrapper = document.getElementById('masonry-wrapper')
+listWrapper.addEventListener('change', taskActionsListener)
+listWrapper.addEventListener('click', taskActionsListener)
+
 document.addEventListener('DOMContentLoaded', setupThemeToggler)
