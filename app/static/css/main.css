@@ -521,9 +521,6 @@
   .text-white {
     color: var(--color-white);
   }
-  .line-through {
-    text-decoration-line: line-through;
-  }
   .placeholder-slate-400 {
     &::placeholder {
       color: var(--color-slate-400);

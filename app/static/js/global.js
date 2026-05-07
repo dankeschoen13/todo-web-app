@@ -235,6 +235,16 @@ function taskActionsListener(event) {
 
     if (target.classList.contains('task-checkbox')) {
         const taskID = target.id.split("-").pop();
+        const taskItemElement = target.closest('li');
+        const parentList = taskItemElement.parentElement;
+
+        // 2. Optimistic Sorting: Move it to the bottom if checked, top if unchecked
+        if (target.checked) {
+            parentList.appendChild(taskItemElement);
+        } else {
+            parentList.prepend(taskItemElement); // Puts it back at the very top
+        }
+
         updateTaskStatus(taskID, target);
     }
 

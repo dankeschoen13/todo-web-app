@@ -26,7 +26,7 @@
                         Add tasks below...
                     </li>
                 {% else %}
-                    {% for task in todo_list.tasks %}
+                    {% for task in todo_list.tasks | sort(attribute='is_completed') %}
                         {% include "components/task-item.html" %}
                     {% endfor %}
                 {% endif %}
