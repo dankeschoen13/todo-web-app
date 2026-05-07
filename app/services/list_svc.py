@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 class ListSvc:
 
+    # LIST METHODS
     @classmethod
     def _active_list_query(cls):
 
@@ -62,9 +63,10 @@ class ListSvc:
         return existing_list
 
 
+    # TASK METHODS
     @classmethod
     def _active_task_query(cls):
-
+        # todo: utilize flask g variable to dynamically turn on/off completed tasks
         return db.select(Task)
 
     @classmethod
@@ -111,3 +113,19 @@ class ListSvc:
 
         return task
 
+    @classmethod
+    def delete_task(cls, task_id: int) -> None:
+        task = cls.get_task_by_id(task_id)
+
+        if not task:
+            raise ValueError(f"Unable to find task with ID {task_id}")
+
+        try:
+            db.session.delete(task)
+            db.session.commit()
+
+        except IntegrityError as e:
+            logger.error(f"Unable to mark task as complete: {e}")
+
+            db.session.rollback()
+            raise ValueError("Unable to mark task as complete")

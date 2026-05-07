@@ -79,3 +79,12 @@ def complete_task(task_id):
     except ValueError as e:
         return {"error": str(e)}, 400
     return "", 204
+
+
+@main_bp.delete('/api/task/<int:task_id>/delete')
+def delete_task(task_id):
+    try:
+        ListSvc.delete_task(task_id)
+    except ValueError as e:
+        return {"error": str(e)}, 400
+    return "", 204
