@@ -323,8 +323,15 @@ function deleteTask(taskId, taskElement) {
 // EVENT LISTENERS
 
 /**
- * Listens for checkbox changes within the masonry wrapper and triggers
- * the API call to toggle the task's completion status in the database.
+ * Listens for actions triggered within the masonry wrapper and initiates
+ * the API call to apply those changes to the database.
+ *
+ * Events being listened to:
+ *
+ * - checkbox completion toggle
+ * - hide/show completed button is clicked
+ * - delete task is clicked
+ * - delete list is clicked
  *
  * @param {Event} event - The change event from the DOM.
  * @returns {void}
@@ -332,32 +339,83 @@ function deleteTask(taskId, taskElement) {
 function listActionsListener(event) {
     const target = event.target;
 
+    // LISTENS FOR CHANGES IN CHECKBOX
     if (target.classList.contains('task-checkbox')) {
         const taskID = target.id.split("-").pop();
         const taskItemElement = target.closest('li');
         const parentList = taskItemElement.parentElement;
+        const toggleBtn = parentList.querySelector('.toggle-completed-btn');
 
-        // 2. Optimistic Sorting: Move it to the bottom if checked, top if unchecked
         if (target.checked) {
+            // When task item is checked, do the following:
+            //
+            // 1. cut and paste the task item to the bottom of parentList
+            // 2. immediately hide the task item in 'collapsed' state
             parentList.appendChild(taskItemElement);
+            if (toggleBtn && toggleBtn.getAttribute('data-state') === 'collapsed') {
+                taskItemElement.classList.add('hidden');
+            }
         } else {
-            parentList.prepend(taskItemElement); // Puts it back at the very top
+            // When task item is unchecked, do the following:
+            //
+            // 1. cut and paste the task item to the top of parentList
+            // 2. remove the hidden class
+            parentList.prepend(taskItemElement);
+            taskItemElement.classList.remove('hidden'); // Ensure it becomes visible
+        }
+
+        if (toggleBtn) {
+            // Dynamically update the completed count and
+            // hide the completed toggle when there are no checked tasks
+            const checkedCount = parentList.querySelectorAll('.task-checkbox:checked').length;
+            toggleBtn.querySelector('.completed-count').textContent = checkedCount;
+
+            if (checkedCount === 0) {
+                toggleBtn.classList.add('hidden');
+            } else {
+                toggleBtn.classList.remove('hidden');
+            }
         }
 
         updateTaskStatus(taskID, target);
     }
 
-    const taskDeleteBtn = target.closest('.delete-task-btn')
+    // LISTENS FOR COMPLETED TOGGLE BUTTON CLICKS
+    const toggleCompletedBtn = target.closest('.toggle-completed-btn');
+    if (toggleCompletedBtn) {
+        const taskList = toggleCompletedBtn.parentElement;
+        const checkedTasks = taskList.querySelectorAll('.task-checkbox:checked');
+        const chevron = toggleCompletedBtn.querySelector('.chevron-icon');
+
+        // Check current state
+        const isCurrentlyExpanded = toggleCompletedBtn.getAttribute('data-state') === 'expanded';
+
+        if (isCurrentlyExpanded) {
+            toggleCompletedBtn.setAttribute('data-state', 'collapsed');
+        } else {
+            toggleCompletedBtn.setAttribute('data-state', 'expanded');
+        }
+
+        // Enforce toggle rule depending on status: Add class if expanded, remove if not.
+        chevron.classList.toggle('-rotate-90', isCurrentlyExpanded);
+        checkedTasks.forEach((item) => {
+            item.closest('li').classList.toggle('hidden', isCurrentlyExpanded);
+        });
+    }
+
+    // --- DELETE TASK LISTENER ---
+    const taskDeleteBtn = target.closest('.delete-task-btn');
     if (taskDeleteBtn) {
         const taskID = taskDeleteBtn.id.split("-").pop();
         const taskItemElement = taskDeleteBtn.closest('li');
         deleteTask(taskID, taskItemElement);
     }
-    
-    const listDeleteBtn = target.closest('.delete-list-btn')
+
+    // --- DELETE LIST LISTENER ---
+    const listDeleteBtn = target.closest('.delete-list-btn');
     if (listDeleteBtn) {
         const listID = listDeleteBtn.id.split('-').pop();
-        const listElement = listDeleteBtn.closest('#todo-list');
+        const listElement = listDeleteBtn.closest('section');
         deleteList(listID, listElement);
     }
 }
