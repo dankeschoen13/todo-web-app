@@ -221,41 +221,6 @@ function setupThemeToggler() {
     themeToggleBtn.addEventListener('click', toggleTheme);
 }
 
-// EVENT LISTENERS
-
-/**
- * Listens for checkbox changes within the masonry wrapper and triggers
- * the API call to toggle the task's completion status in the database.
- *
- * @param {Event} event - The change event from the DOM.
- * @returns {void}
- */
-function taskActionsListener(event) {
-    const target = event.target;
-
-    if (target.classList.contains('task-checkbox')) {
-        const taskID = target.id.split("-").pop();
-        const taskItemElement = target.closest('li');
-        const parentList = taskItemElement.parentElement;
-
-        // 2. Optimistic Sorting: Move it to the bottom if checked, top if unchecked
-        if (target.checked) {
-            parentList.appendChild(taskItemElement);
-        } else {
-            parentList.prepend(taskItemElement); // Puts it back at the very top
-        }
-
-        updateTaskStatus(taskID, target);
-    }
-
-    const deleteBtn = target.closest('.delete-task-btn')
-    if (deleteBtn) {
-        const taskID = deleteBtn.id.split("-").pop();
-        const taskItemElement = deleteBtn.closest('li');
-        deleteTask(taskID, taskItemElement);
-    }
-}
-
 
 /**
  * Sends a PATCH request to toggle a task's completion status.
@@ -324,6 +289,52 @@ function deleteTask(taskId, taskElement) {
     });
 }
 
+
+// EVENT LISTENERS
+
+/**
+ * Listens for checkbox changes within the masonry wrapper and triggers
+ * the API call to toggle the task's completion status in the database.
+ *
+ * @param {Event} event - The change event from the DOM.
+ * @returns {void}
+ */
+function taskActionsListener(event) {
+    const target = event.target;
+
+    if (target.classList.contains('task-checkbox')) {
+        const taskID = target.id.split("-").pop();
+        const taskItemElement = target.closest('li');
+        const parentList = taskItemElement.parentElement;
+
+        // 2. Optimistic Sorting: Move it to the bottom if checked, top if unchecked
+        if (target.checked) {
+            parentList.appendChild(taskItemElement);
+        } else {
+            parentList.prepend(taskItemElement); // Puts it back at the very top
+        }
+
+        updateTaskStatus(taskID, target);
+    }
+
+    const deleteBtn = target.closest('.delete-task-btn')
+    if (deleteBtn) {
+        const taskID = deleteBtn.id.split("-").pop();
+        const taskItemElement = deleteBtn.closest('li');
+        deleteTask(taskID, taskItemElement);
+    }
+}
+
+function newListInputListener(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        addNewList();
+    }
+}
+
+
+const newListInput = document.getElementById('new-list-input')
+newListInput.addEventListener('keydown', newListInputListener)
 
 const listWrapper = document.getElementById('masonry-wrapper')
 listWrapper.addEventListener('change', taskActionsListener)
