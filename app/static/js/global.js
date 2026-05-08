@@ -61,7 +61,7 @@ function updateMasonryLayout() {
     if (listCount === 1) {
         wrapper.style.maxWidth = '380px';
     } else if (listCount === 2) {
-        wrapper.style.maxWidth = '768px';
+        wrapper.style.maxWidth = '824px';
     } else {
         wrapper.style.maxWidth = '1280px';
     }
