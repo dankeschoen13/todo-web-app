@@ -241,6 +241,7 @@ function deleteList(listId, listElement) {
         if (!res.ok) {
             throw new Error('Server rejected the request.');
         }
+        updateMasonryLayout();
     })
     .catch(err => {
         console.error("Delete Error:", err);
@@ -415,7 +416,7 @@ function listActionsListener(event) {
     const listDeleteBtn = target.closest('.delete-list-btn');
     if (listDeleteBtn) {
         const listID = listDeleteBtn.id.split('-').pop();
-        const listElement = listDeleteBtn.closest('section');
+        const listElement = listDeleteBtn.closest('.todo-list');
         deleteList(listID, listElement);
     }
 }
