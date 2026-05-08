@@ -1,3 +1,51 @@
+
+/**
+ * Initializes the dark/light mode theme toggler. Checks system preferences
+ * or localStorage for the initial state, updates the UI icons, and binds
+ * the toggle button click listener.
+ *
+ * @returns {void}
+ */
+function setupThemeToggler() {
+    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        themeToggleLightIcon.classList.remove('hidden');
+    } else {
+        themeToggleDarkIcon.classList.remove('hidden');
+    }
+
+    const themeToggleBtn = document.getElementById('theme-toggle');
+
+    function toggleTheme() {
+        themeToggleDarkIcon.classList.toggle('hidden');
+        themeToggleLightIcon.classList.toggle('hidden');
+
+        if (localStorage.getItem('color-theme')) {
+            if (localStorage.getItem('color-theme') === 'light') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+            }
+        } else {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+            }
+        }
+    }
+
+    themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+
 /**
  * Dynamically adjusts the max-width of the masonry wrapper based on the number of task lists.
  *
@@ -153,7 +201,7 @@ function exitEditMode(inputElement) {
  * @param {number} listId - The unique database ID of the list being updated.
  * @returns {void}
  */
-function saveTitle(input, listId) {
+function saveListTitle(input, listId) {
     exitEditMode(input);
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -175,51 +223,33 @@ function saveTitle(input, listId) {
 }
 
 
-/**
- * Initializes the dark/light mode theme toggler. Checks system preferences
- * or localStorage for the initial state, updates the UI icons, and binds
- * the toggle button click listener.
- *
- * @returns {void}
- */
-function setupThemeToggler() {
-    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+function deleteList(listId, listElement) {
+    const parentElement = listElement.parentElement;
 
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-        themeToggleLightIcon.classList.remove('hidden');
-    } else {
-        themeToggleDarkIcon.classList.remove('hidden');
-    }
+    listElement.remove();
 
-    const themeToggleBtn = document.getElementById('theme-toggle');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    function toggleTheme() {
-        themeToggleDarkIcon.classList.toggle('hidden');
-        themeToggleLightIcon.classList.toggle('hidden');
-
-        if (localStorage.getItem('color-theme')) {
-            if (localStorage.getItem('color-theme') === 'light') {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('color-theme', 'dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('color-theme', 'light');
-            }
-        } else {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('color-theme', 'light');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('color-theme', 'dark');
-            }
+    fetch(`/api/lists/${listId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         }
-    }
-
-    themeToggleBtn.addEventListener('click', toggleTheme);
+    })
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('Server rejected the request.');
+        }
+    })
+    .catch(err => {
+        console.error("Delete Error:", err);
+        // Rollback the UI if the delete fails
+        parentElement.appendChild(listElement);
+        alert("Failed to delete list. Please check your connection.");
+    });
 }
+
 
 
 /**
@@ -299,7 +329,7 @@ function deleteTask(taskId, taskElement) {
  * @param {Event} event - The change event from the DOM.
  * @returns {void}
  */
-function taskActionsListener(event) {
+function listActionsListener(event) {
     const target = event.target;
 
     if (target.classList.contains('task-checkbox')) {
@@ -317,11 +347,18 @@ function taskActionsListener(event) {
         updateTaskStatus(taskID, target);
     }
 
-    const deleteBtn = target.closest('.delete-task-btn')
-    if (deleteBtn) {
-        const taskID = deleteBtn.id.split("-").pop();
-        const taskItemElement = deleteBtn.closest('li');
+    const taskDeleteBtn = target.closest('.delete-task-btn')
+    if (taskDeleteBtn) {
+        const taskID = taskDeleteBtn.id.split("-").pop();
+        const taskItemElement = taskDeleteBtn.closest('li');
         deleteTask(taskID, taskItemElement);
+    }
+    
+    const listDeleteBtn = target.closest('.delete-list-btn')
+    if (listDeleteBtn) {
+        const listID = listDeleteBtn.id.split('-').pop();
+        const listElement = listDeleteBtn.closest('#todo-list');
+        deleteList(listID, listElement);
     }
 }
 
@@ -337,7 +374,7 @@ const newListInput = document.getElementById('new-list-input')
 newListInput.addEventListener('keydown', newListInputListener)
 
 const listWrapper = document.getElementById('masonry-wrapper')
-listWrapper.addEventListener('change', taskActionsListener)
-listWrapper.addEventListener('click', taskActionsListener)
+listWrapper.addEventListener('change', listActionsListener)
+listWrapper.addEventListener('click', listActionsListener)
 
 document.addEventListener('DOMContentLoaded', setupThemeToggler)
