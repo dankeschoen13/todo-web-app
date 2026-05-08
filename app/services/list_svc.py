@@ -62,6 +62,23 @@ class ListSvc:
 
         return existing_list
 
+    @classmethod
+    def delete_list(cls, list_id: int) -> None:
+        task_list = cls.get_list_by_id(list_id)
+
+        if not task_list:
+            raise ValueError(f"Unable to find list with ID {list_id}")
+
+        try:
+            db.session.delete(task_list)
+            db.session.commit()
+
+        except IntegrityError as e:
+            logger.error(f"Unable to delete list: {e}")
+
+            db.session.rollback()
+            raise ValueError("Unable to delete list.")
+
 
     # TASK METHODS
     @classmethod
