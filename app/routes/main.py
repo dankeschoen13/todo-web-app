@@ -1,7 +1,5 @@
 from flask import Blueprint, render_template, session, request
 from flask_login import current_user, login_user
-from sqlalchemy import delete
-
 from app.services import UserSvc, ListSvc
 
 

@@ -37,7 +37,7 @@ class UserSvc:
         Returns:
             tuple: A user object and a guest UUID
         """
-        guest_uuid = str(uuid.uuid4())
+        guest_uuid = uuid.uuid4().hex
         guest_user = User(
             username=f"guest_{guest_uuid}",
             email=f"guest_{guest_uuid}@temp.local",
