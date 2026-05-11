@@ -155,11 +155,12 @@ function listEventsDelegator(event) {
  * Adds a new task to a specific list via an API POST request, dynamically
  * updates the UI, and removes the "empty state" placeholder if it exists.
  *
+ * @async
  * @param {HTMLFormElement} newTaskForm - The form element that triggered submit.
  * @param {number} listId - The unique database ID of the parent list.
  * @returns {void}
  */
-function addNewTask(newTaskForm, listId) {
+async function addNewTask(newTaskForm, listId) {
 
     const inputElement = newTaskForm.querySelector('input');
     const taskContent = inputElement.value.trim();
@@ -168,75 +169,55 @@ function addNewTask(newTaskForm, listId) {
 
     const ulElement = document.getElementById(`task-list-${listId}`);
     const emptyListElement = document.getElementById(`empty-state-${listId}`)
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    fetch(`/api/lists/${listId}/task`, {
-        method: 'POST',
-        body: JSON.stringify({content: taskContent}),
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
-        return res.text();
-    })
-    .then(htmlSnippet => {
+    try {
+        const response = await apiFetch(
+            `/api/lists/${listId}/task`,
+            'POST',
+            {content: taskContent}
+        )
         const toggleBtn = ulElement.querySelector('.toggle-completed-btn');
 
         if (toggleBtn) {
-            toggleBtn.insertAdjacentHTML('beforebegin', htmlSnippet);
+            toggleBtn.insertAdjacentHTML('beforebegin', response);
         } else {
-            ulElement.insertAdjacentHTML('beforeend', htmlSnippet);
+            ulElement.insertAdjacentHTML('beforeend', response);
         }
 
         inputElement.value = '';
         if (emptyListElement) {
             emptyListElement.classList.add('hidden');
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error("Error creating list:", error);
         alert("Unable to save list. Please try again.");
-    });
+    }
 }
 
 /**
  * Sends a PATCH request to toggle a task's completion status.
  * Reverts the UI state if the server request fails.
  *
+ * @async
  * @param {string} taskId - The database ID of the task.
  * @param {HTMLInputElement} checkbox - The checkbox element toggled by the user.
  * @returns {void}
  */
-function updateTaskStatus(taskId, checkbox) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/api/task/${taskId}/toggle`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
-    })
-    .catch(err => {
-        console.error("Save Error:", err);
-        // Rollback the UI if the fetch fails
+async function updateTaskStatus(taskId, checkbox) {
+    try {
+        await apiFetch(
+            `/api/task/${taskId}/toggle`,
+            'PATCH',
+        )
+    } catch (error) {
+        console.error("Save Error:", error);
         checkbox.checked = !checkbox.checked;
         alert("Failed to update task. Please check your connection.");
-    });
+    }
 }
 
 /**
- * Transitions a list's header from display mode to edit mode by hiding
+ * Transitions a list's title from display mode to edit mode by hiding
  * the heading text and revealing the text input field.
  *
  * @param {HTMLElement} element - The clickable header view container.
@@ -252,6 +233,12 @@ function enterEditMode(element) {
     input.select();
 }
 
+/**
+ * Transitions the update list title input field  back to list title.
+ *
+ * @param {HTMLInputElement} inputElement - The input element to be unfocused.
+ * @returns {void}
+ */
 function exitEditMode(inputElement) {
     const titleWrapper = inputElement.parentElement;
     const view = titleWrapper.querySelector('.list-title');
@@ -271,106 +258,75 @@ function exitEditMode(inputElement) {
  * Saves an updated list title to the backend via an API PATCH request.
  * Automatically exits edit mode before sending the request.
  *
+ * @async
  * @param {HTMLInputElement} input - The text input field containing the new title.
  * @param {number} listId - The unique database ID of the list being updated.
  * @returns {void}
  */
-function updateListTitle(input, listId) {
+async function updateListTitle(input, listId) {
     exitEditMode(input);
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/api/lists/${listId}/title`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ title: input.value })
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
-    })
-    .catch(err => console.error("Save Error:", err));
+    try {
+        await apiFetch(
+            `/api/lists/${listId}/title`,
+            'PATCH',
+            {title: input.value}
+        )
+    } catch (error) {
+        console.error("Save Error:", error);
+        alert("Failed to rename list. Please refresh page and/or check your connection.")
+    }
 }
 
 /**
  * Sends a DELETE request to remove a list.
  * Optimistically removes the item from the DOM, but restores it if the server fails.
  *
+ * @async
  * @param {string} listId - The database ID of the task.
  * @param {HTMLElement} listElement - The <li> element being deleted.
  * @returns {void}
  */
-function deleteList(listId, listElement) {
-    const parentElement = listElement.parentElement;
+async function deleteList(listId, listElement) {
+    listElement.classList.add('hidden');
 
-    listElement.remove();
-
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/api/lists/${listId}/delete`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
+    try {
+        await apiFetch(`/api/lists/${listId}/delete`, 'DELETE');
+        listElement.remove();
         updateMasonryLayout();
-    })
-    .catch(err => {
-        console.error("Delete Error:", err);
-        // Rollback the UI if the delete fails
-        parentElement.appendChild(listElement);
+    } catch (error) {
+        console.error("Delete Error:", error);
+        listElement.classList.remove('hidden');
         alert("Failed to delete list. Please check your connection.");
-    });
+    }
 }
 
 /**
  * Sends a DELETE request to remove a task.
  * Optimistically removes the item from the DOM, but restores it if the server fails.
  *
+ * @async
  * @param {string} taskId - The database ID of the task.
  * @param {HTMLElement} taskElement - The <li> element being deleted.
  * @returns {void}
  */
-function deleteTask(taskId, taskElement) {
-    const parentElement = taskElement.parentElement;
+async function deleteTask(taskId, taskElement) {
+    taskElement.classList.add('hidden')
 
-    taskElement.remove();
-
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/api/task/${taskId}/delete`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
-    })
-    .catch(err => {
-        console.error("Delete Error:", err);
-        // Rollback the UI if the delete fails
-        parentElement.appendChild(taskElement);
+    try {
+        await apiFetch(`/api/task/${taskId}/delete`, 'DELETE')
+        taskElement.remove()
+    } catch (error) {
+        console.error("Delete Error:", error);
+        taskElement.classList.remove('hidden');
         alert("Failed to delete task. Please check your connection.");
-    });
+    }
 }
 
 
-// ==========================================
+// ===============================================================
 // 3. FIXED/STATIC BUTTONS
-// ==========================================
+
 const newListForm = document.getElementById('new-list-form');
 if (newListForm) {
     newListForm.addEventListener('submit', (e) => {
@@ -384,42 +340,29 @@ if (newListForm) {
  * Creates a new task list via an API POST request and dynamically injects
  * the returned HTML snippet into the DOM. Also triggers a masonry layout update.
  *
+ * @async
  * @returns {void}
  */
-function addNewList(newListForm) {
+async function addNewList(newListForm) {
     const container = document.getElementById('extra-lists-container');
     const inputElement = newListForm.querySelector('input[type="text"]');
     const listTitle = inputElement.value.trim() || "New List";
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    fetch(`/api/new-list`, {
-        method: 'POST',
-        body: JSON.stringify({
-            title: listTitle
-        }),
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('Server rejected the request.');
-        }
-        return res.text();
-    })
-    .then(htmlSnippet => {
-        container.insertAdjacentHTML('beforeend', htmlSnippet);
+    try {
+        const responseData = await apiFetch(
+            `/api/new-list`,
+            'POST',
+            {title: listTitle}
+        );
+        console.log("Success:", responseData);
+        container.insertAdjacentHTML('beforeend', responseData);
         inputElement.value = '';
         updateMasonryLayout();
-    })
-    .catch(error => {
+    } catch (error) {
         console.error("Error creating list:", error);
         alert("Unable to save list. Please try again.");
-    });
+    }
 }
-
 
 /**
  * Initializes the dark/light mode theme toggler. Checks system preferences
@@ -465,6 +408,64 @@ function setupThemeToggler() {
     }
 
     themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+
+// ===============================================================
+// 4. HELPER METHODS
+
+/**
+ * A centralized wrapper for the native fetch API that automatically handles
+ * headers, CSRF tokens, and response parsing.
+ *
+ * This function dynamically returns parsed JSON or raw HTML text based on the
+ * server's 'Content-Type' header. It also automatically injects a CSRF token
+ * from the document meta tag for mutating requests (POST, PUT, PATCH, DELETE).
+ *
+ * @async
+ * @param {string} endpoint - The URL or API route to send the request to (e.g., '/api/users').
+ * @param {string} [method='GET'] - The HTTP method to use. Defaults to 'GET'.
+ * @param {Object|null} [body=null] - The data payload to send. It will be automatically stringified to JSON.
+ * @returns {Promise<Object|string|null>} Returns a Promise that resolves to:
+ *   - A parsed JavaScript Object (if the server returns JSON).
+ *   - A raw string (if the server returns HTML).
+ *   - `null` (if the server returns a 204 No Content status).
+ * @throws {Error} Throws an error if the network response status is not OK (e.g., 400, 404, 500).
+ */
+async function apiFetch(endpoint, method = 'GET', body = null) {
+    // 1. Building the header
+    const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/html' // Accept both JSON and HTML from the server
+    };
+    if (method !== 'GET' && method !== 'HEAD') {
+        const csrfToken = document.querySelector(
+            'meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+    }
+    // 2. Prepare the options object & optionally add a body
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+
+    // 3. Send a fetch request and await response
+    const response = await fetch(endpoint, options);
+
+    // 4. Interpret the response
+
+    // Error handling
+    if (!response.ok) {throw new Error(`API Error: ${response.status}`);}
+    // Empty response handling
+    if (response.status === 204) return null;
+    // Text snippet response handling
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+        // convert to text if HTML
+        return response.text();
+    }
+    // else return as json
+    return response.json();
 }
 
 /**
