@@ -12,7 +12,8 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     login_manager.init_app(app)
 
-    from app.routes import main_bp
+    from app.routes import main_bp, auth_bp
     app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
 
     return app
