@@ -1,6 +1,11 @@
-import uuid
+from psycopg2._psycopg import IntegrityError
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import or_
 from app.extensions import db
 from app.models import User
+import uuid, logging
+
+logger = logging.getLogger(__name__)
 
 class UserSvc:
 
@@ -10,6 +15,15 @@ class UserSvc:
         Internal helper: Returns a Select object pre-filtered for active users.
         """
         return db.select(User)
+
+    @classmethod
+    def _existing_user_query(cls, email: str, username: str) -> User | None:
+        stmt = cls._active_users_query().where(or_(
+            User.email == email,
+            User.username == username)
+        )
+        return db.session.execute(stmt).scalar_one_or_none()
+
 
 
     @classmethod
@@ -32,7 +46,7 @@ class UserSvc:
     @classmethod
     def create_guest(cls) -> tuple[User, str]:
         """
-        Creates a guest user.
+        Creates a guest user object and saves it to the database.
 
         Returns:
             tuple: A user object and a guest UUID
@@ -48,3 +62,55 @@ class UserSvc:
         db.session.commit()
 
         return guest_user, guest_uuid
+
+    @classmethod
+    def create_new_user(cls, email: str, username: str, password: str) -> User | None:
+        """
+        Creates a new user object and saves it to the database.
+
+        Args:
+            email: user's email address
+            username: user's preferred username
+            password: user's password
+
+        Returns:
+            User | None: A user object or None
+        """
+
+        existing_user = cls._existing_user_query(email, username)
+        if existing_user:
+            if existing_user.email == email:
+                raise DuplicateUserError("This email is already registered.", "email")
+            if existing_user.username == username:
+                raise DuplicateUserError("This username is already taken.", "username")
+
+        hash_and_salted_password = generate_password_hash(
+            password, method='pbkdf2:sha256', salt_length=8
+        )
+
+        new_user = User(
+            email=email,
+            username=username,
+            password=hash_and_salted_password
+        )
+
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+        except IntegrityError as e:
+            logger.error(f"IntegrityError during user creation: {e}")
+
+            db.session.rollback()
+            raise ValueError("A database error occurred during registration.")
+
+        return new_user
+
+
+
+class DuplicateUserError(Exception):
+    """
+    Raised when a user attempts to register with an existing email or username.
+    """
+    def __init__(self, message, field_name):
+        super().__init__(message)
+        self.field_name = field_name
