@@ -1,22 +1,9 @@
-from flask import Blueprint, render_template, session, request
-from flask_login import current_user, login_user
-from app.services import UserSvc, ListSvc
+from flask import Blueprint, render_template, request
+from flask_login import current_user
+from app.services import ListSvc
 
 
 main_bp = Blueprint('main', __name__)
-
-
-@main_bp.before_app_request
-def guest_handler():
-    endpoint = request.endpoint or ""
-
-    if endpoint.endswith('static'):
-        return
-
-    if not current_user.is_authenticated:
-        guest_user, guest_uuid = UserSvc.create_guest()
-        session['guest_uuid'] = guest_uuid
-        login_user(guest_user)
 
 
 @main_bp.get('/')

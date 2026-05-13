@@ -17,11 +17,20 @@ class UserSvc:
         return db.select(User)
 
     @classmethod
-    def _existing_user_query(cls, email: str, username: str) -> User | None:
-        stmt = cls._active_users_query().where(or_(
-            User.email == email,
-            User.username == username)
-        )
+    def _existing_user_query(cls, email: str = None, username: str = None) -> User | None:
+        query = cls._active_users_query()
+
+        conditions = []
+        if email:
+            conditions.append(User.email == email)
+        if username:
+            conditions.append(User.username == username)
+
+        if not conditions:
+            raise ValueError("You must provide either 'email' or 'username'.")
+
+        stmt = query.where(or_(*conditions))
+
         return db.session.execute(stmt).scalar_one_or_none()
 
 
@@ -106,6 +115,19 @@ class UserSvc:
         return new_user
 
 
+    @classmethod
+    def authenticate_user(cls, identifier: str, password: str) -> User:
+        if "@" in identifier:
+            user = cls._existing_user_query(email=identifier)
+        else:
+            user = cls._existing_user_query(username=identifier)
+
+        # noinspection PyTypeChecker
+        if not user or not check_password_hash(user.password, password):
+            raise AuthenticationError("Invalid email/username or password.")
+
+        return user
+
 
 class DuplicateUserError(Exception):
     """
@@ -114,3 +136,10 @@ class DuplicateUserError(Exception):
     def __init__(self, message, field_name):
         super().__init__(message)
         self.field_name = field_name
+
+
+class AuthenticationError(Exception):
+    """
+    Raised when login fails for any reason.
+    """
+    pass
