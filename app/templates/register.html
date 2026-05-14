@@ -29,7 +29,7 @@
                 <!-- Username Field -->
                 <div>
                     <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
-                    <input type="text" id="username" placeholder="johndoe" required
+                    <input type="text" id="username" name="username" placeholder="johndoe" required
                         class="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-colors">
                     <p id="error-username" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
                 </div>
@@ -37,7 +37,7 @@
                 <!-- Email Field -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
-                    <input type="email" id="email" placeholder="you@example.com" required
+                    <input type="email" id="email" name="email" placeholder="you@example.com" required
                         class="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-colors">
                     <p id="error-email" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
                 </div>
@@ -45,7 +45,7 @@
                 <!-- Password Field -->
                 <div>
                     <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
-                    <input type="password" id="password" placeholder="••••••••" required minlength="8"
+                    <input type="password" id="password" name="password" placeholder="••••••••" required minlength="8"
                         class="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-colors">
                     <p id="error-password" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
                 </div>
@@ -53,10 +53,11 @@
                 <!-- Confirm Password Field -->
                 <div>
                     <label for="confirm-password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
-                    <input type="password" id="confirm-password" placeholder="••••••••" required
+                    <input type="password" id="confirm-password" name="confirm_password" placeholder="••••••••" required
                         class="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-colors">
                     <p id="error-confirm" class="hidden mt-1 text-sm text-red-600 dark:text-red-400"></p>
                 </div>
+
             </div>
 
             <!-- Global Error Message (For things like "Server offline") -->
@@ -72,4 +73,9 @@
 
     </div>
 </div>
+{% endblock %}
+
+
+{% block scripts %}
+    <script type="module" src="{{ url_for('static', filename='js/auth.js') }}"></script>
 {% endblock %}

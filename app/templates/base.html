@@ -46,7 +46,7 @@
     {% include "sections/footer.html" %}
 
     {% block scripts %}
-        <script src="{{ url_for('static', filename='js/global.js') }}"></script>
+        <script type="module" src="{{ url_for('static', filename='js/global.js') }}"></script>
     {% endblock %}
 </body>
 </html>
