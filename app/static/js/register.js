@@ -1,7 +1,7 @@
 import { apiFetch } from "./api.js";
 
 // ===============================================================
-// 1. REGISTER LOGIC
+// REGISTRATION LOGIC
 
 const registerForm = document.getElementById('register-form');
 
