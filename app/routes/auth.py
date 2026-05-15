@@ -32,37 +32,41 @@ def api_register():
 
     try:
         new_user = UserSvc.create_new_user(email, username, password)
-        login_user(new_user)
-        return jsonify({"message": "User created successfully"}), 201
 
     except DuplicateUserError as e:
         return jsonify({
-            "error": str(e),
-            "field": e.field_name
+            "error": str(e), "field": e.field_name
         }), 400
 
     except ValueError as e:
-        return jsonify({"error": str(e), "field": "global"}), 500
+        return jsonify({
+            "error": str(e), "field": "global"
+        }), 500
+
+    login_user(new_user)
+    return jsonify({"message": "User created successfully"}), 201
 
 
-@auth_bp.route('/login')
+@auth_bp.get('/login')
 def login_page():
     return render_template('login.html')
 
 
-@auth_bp.get('/api/login')
+@auth_bp.post('/api/login')
 def api_login():
-    data = request.json()
+    data = request.get_json()
     login_identifier = data.get('identifier')
     password = data.get('password')
 
     try:
         user = UserSvc.authenticate_user(login_identifier, password)
-        login_user(user)
-        return jsonify({"message": "User logged in successfully"}), 201
 
     except AuthenticationError as e:
         return jsonify({"error": str(e)}), 401
+
+    session.pop('guest_uuid', None)
+    login_user(user)
+    return jsonify({"message": "User logged in successfully"}), 200
 
 
 @auth_bp.get('/logout')
