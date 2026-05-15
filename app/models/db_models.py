@@ -47,6 +47,12 @@ class User(db.Model):
     def is_anonymous(self) -> bool:
         return False
 
+    @property
+    def is_guest(self) -> bool:
+        # Assuming guest users have a specific email pattern,
+        # or maybe you just check if they have a real password hash
+        return str(self.email).endswith('@temp.local')
+
     def get_id(self) -> str:
         return str(self.id)
 

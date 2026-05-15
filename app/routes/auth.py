@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, jsonify, session
+from flask import Blueprint, request, render_template, jsonify, session, flash, redirect, url_for
 from flask_login import login_user, current_user, logout_user
 from app.services import UserSvc, DuplicateUserError
 from app.services.user_svc import AuthenticationError
@@ -64,3 +64,15 @@ def api_login():
     except AuthenticationError as e:
         return jsonify({"error": str(e)}), 401
 
+
+@auth_bp.get('/logout')
+def logout():
+    if current_user.is_authenticated and not current_user.is_guest:
+        logout_user()
+        flash('You have been logged out', 'info')
+
+        next_page = request.args.get('next')
+        if next_page:
+            return redirect(url_for(next_page))
+
+    return redirect(url_for('web.index'))
