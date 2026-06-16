@@ -17,7 +17,7 @@ class UserSvc:
         return db.select(User)
 
     @classmethod
-    def _existing_user_query(cls, email: str = None, username: str = None) -> User | None:
+    def _existing_user_query(cls, email: str | None = None, username: str | None = None) -> User | None:
         query = cls._active_users_query()
 
         conditions = []
