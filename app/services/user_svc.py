@@ -73,20 +73,26 @@ class UserSvc:
         return guest_user, guest_uuid
 
     @classmethod
-    def create_new_user(cls, email: str, username: str, password: str) -> User | None:
+    def create_user(cls, email: str, username: str, password: str, guest_user: User | None = None) -> User:
         """
-        Creates a new user object and saves it to the database.
+        Registers a new user. If a guest_user is provided, mutates the guest record
+        into a fully registered user to preserve their existing session data.
 
         Args:
-            email: user's email address
-            username: user's preferred username
-            password: user's password
+            email: The user's email address.
+            username: The user's chosen display name.
+            password: Plain text password (hashed internally before storage).
+            guest_user: Optional. The current unauthenticated guest session user.
 
         Returns:
-            User | None: A user object or None
-        """
+            User: The newly created or updated user instance.
 
+        Raises:
+            DuplicateUserError: If the email or username already exists.
+            ValueError: On database commit failure.
+        """
         existing_user = cls._existing_user_query(email, username)
+
         if existing_user:
             if existing_user.email == email:
                 raise DuplicateUserError("This email is already registered.", "email")
@@ -97,23 +103,33 @@ class UserSvc:
             password, method='pbkdf2:sha256', salt_length=8
         )
 
-        new_user = User(
-            email=email,
-            username=username,
-            password=hash_and_salted_password
-        )
+        if guest_user:
+            # Overwrite the guest account instead of creating a new row.
+            # This ensures any foreign keys (like existing To-Do lists) stay attached
+            # to the user without needing a massive data migration script.
+            user_to_save = guest_user
+            user_to_save.email = email
+            user_to_save.username = username
+            user_to_save.password = hash_and_salted_password
+        else:
+            # Fallback for users who blocked cookies or let their session expire
+            user_to_save = User(
+                email=email,
+                username=username,
+                password=hash_and_salted_password
+            )
+            db.session.add(user_to_save)
 
         try:
-            db.session.add(new_user)
             db.session.commit()
         except IntegrityError as e:
-            logger.error(f"IntegrityError during user creation: {e}")
-
+            # Rollback is critical here to prevent the SQLAlchemy session from
+            # hanging in a failed transaction state for future requests.
+            logger.error(f"IntegrityError during user creation/conversion: {e}")
             db.session.rollback()
             raise ValueError("A database error occurred during registration.")
 
-        return new_user
-
+        return user_to_save
 
     @classmethod
     def authenticate_user(cls, identifier: str, password: str) -> User:
