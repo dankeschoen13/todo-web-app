@@ -43,6 +43,7 @@ def api_register():
             "error": str(e), "field": "global"
         }), 500
 
+    session.pop('guest_uuid', None)
     login_user(new_user)
     return jsonify({"message": "User created successfully"}), 201
 
