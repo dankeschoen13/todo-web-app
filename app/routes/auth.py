@@ -30,8 +30,14 @@ def api_register():
     username = data.get('username')
     password = data.get('password')
 
+    guest_uuid = session.get('guest_uuid')
+    existing_guest = None
+
+    if isinstance(guest_uuid, str):
+        existing_guest = UserSvc.lookup_guest(guest_uuid)
+
     try:
-        new_user = UserSvc.create_new_user(email, username, password)
+        new_user = UserSvc.create_user(email, username, password, existing_guest)
 
     except DuplicateUserError as e:
         return jsonify({
