@@ -34,7 +34,7 @@ def api_register():
     existing_guest = None
 
     if isinstance(guest_uuid, str):
-        existing_guest = UserSvc.lookup_guest(guest_uuid)
+        existing_guest = UserSvc.fetch_guest_by_uuid(guest_uuid)
 
     try:
         new_user = UserSvc.create_user(email, username, password, existing_guest)

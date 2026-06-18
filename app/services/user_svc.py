@@ -36,7 +36,7 @@ class UserSvc:
 
 
     @classmethod
-    def lookup_guest(cls, guest_uuid: str) -> User | None:
+    def fetch_guest_by_uuid(cls, guest_uuid: str) -> User | None:
         """
         Looks up a guest account with matching guest_uuid
 
