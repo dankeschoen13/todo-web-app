@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import func, String, DateTime, Boolean, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.extensions import db, login_manager
 
 
@@ -47,14 +48,23 @@ class User(db.Model):
     def is_anonymous(self) -> bool:
         return False
 
-    @property
-    def is_guest(self) -> bool:
-        # Assuming guest users have a specific email pattern,
-        # or maybe you just check if they have a real password hash
-        return str(self.email).endswith('@temp.local')
-
     def get_id(self) -> str:
         return str(self.id)
+
+    @hybrid_property
+    def is_guest(self) -> bool:
+        """
+        Database has a specific email pattern for guest accounts
+        all of which is set to end in `@temp.local`
+        """
+        return str(self.email).endswith('@temp.local')
+
+    @is_guest.expression
+    def is_guest(self):
+        """
+        Used by SQLAlchemy to build the SQL WHERE clause.
+        """
+        return self.email.endswith('@temp.local')
 
 @login_manager.user_loader
 def load_user(user_id) -> User:

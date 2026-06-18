@@ -1,6 +1,7 @@
 from psycopg2._psycopg import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
+from datetime import datetime, timedelta, timezone
 from app.extensions import db
 from app.models import User
 import uuid, logging
@@ -34,11 +35,10 @@ class UserSvc:
         return db.session.execute(stmt).scalar_one_or_none()
 
 
-
     @classmethod
     def lookup_guest(cls, guest_uuid: str) -> User | None:
         """
-        Looks up a café with matching username UUID.
+        Looks up a guest account with matching guest_uuid
 
         Args:
             guest_uuid (str): The guest user's UUID
@@ -50,6 +50,30 @@ class UserSvc:
             User.username == f"guest_{guest_uuid}"
         )
         return db.session.execute(stmt).scalar_one_or_none()
+
+    @classmethod
+    def fetch_all_guest_accounts(cls, cut_off_hours: int = 24) -> list[User]:
+        """
+        Fetches all expired guest accounts in the database.
+
+        Args:
+            cut_off_hours: The number of hours from now that resulting data
+            should be cut off. Defaults to 24 hours.
+
+        Returns:
+            list[User]: A list of guest user objects. Returns an empty list if none are found.
+        """
+
+        cut_off_time = datetime.now(timezone.utc) - timedelta(hours=cut_off_hours)
+
+        conditions = [
+            User.created_at < cut_off_time,
+            User.is_guest
+        ]
+
+        stmt = cls._active_users_query().where(*conditions)
+
+        return db.session.scalars(stmt).all()
 
 
     @classmethod
