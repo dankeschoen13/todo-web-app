@@ -36,47 +36,6 @@ class UserSvc:
 
 
     @classmethod
-    def fetch_guest_by_uuid(cls, guest_uuid: str) -> User | None:
-        """
-        Looks up a guest account with matching guest_uuid
-
-        Args:
-            guest_uuid (str): The guest user's UUID
-
-        Returns:
-            User | None: A user object or None
-        """
-        stmt = cls._active_users_query().where(
-            User.username == f"guest_{guest_uuid}"
-        )
-        return db.session.execute(stmt).scalar_one_or_none()
-
-    @classmethod
-    def fetch_all_guest_accounts(cls, cut_off_hours: int = 24) -> list[User]:
-        """
-        Fetches all expired guest accounts in the database.
-
-        Args:
-            cut_off_hours: The number of hours from now that resulting data
-            should be cut off. Defaults to 24 hours.
-
-        Returns:
-            list[User]: A list of guest user objects. Returns an empty list if none are found.
-        """
-
-        cut_off_time = datetime.now(timezone.utc) - timedelta(hours=cut_off_hours)
-
-        conditions = [
-            User.created_at < cut_off_time,
-            User.is_guest
-        ]
-
-        stmt = cls._active_users_query().where(*conditions)
-
-        return db.session.scalars(stmt).all()
-
-
-    @classmethod
     def create_guest(cls) -> tuple[User, str]:
         """
         Creates a guest user object and saves it to the database.
@@ -154,6 +113,46 @@ class UserSvc:
             raise ValueError("A database error occurred during registration.")
 
         return user_to_save
+
+    @classmethod
+    def fetch_guest_by_uuid(cls, guest_uuid: str) -> User | None:
+        """
+        Looks up a guest account with matching guest_uuid
+
+        Args:
+            guest_uuid (str): The guest user's UUID
+
+        Returns:
+            User | None: A user object or None
+        """
+        stmt = cls._active_users_query().where(
+            User.username == f"guest_{guest_uuid}"
+        )
+        return db.session.execute(stmt).scalar_one_or_none()
+
+    @classmethod
+    def fetch_all_guest_accounts(cls, cut_off_hours: int = 24) -> list[User]:
+        """
+        Fetches all expired guest accounts in the database.
+
+        Args:
+            cut_off_hours: The number of hours from now that resulting data
+            should be cut off. Defaults to 24 hours.
+
+        Returns:
+            list[User]: A list of guest user objects. Returns an empty list if none are found.
+        """
+
+        cut_off_time = datetime.now(timezone.utc) - timedelta(hours=cut_off_hours)
+
+        conditions = [
+            User.created_at < cut_off_time,
+            User.is_guest
+        ]
+
+        stmt = cls._active_users_query().where(*conditions)
+
+        return db.session.scalars(stmt).all()
 
     @classmethod
     def authenticate_user(cls, identifier: str, password: str) -> User:
