@@ -11,11 +11,20 @@ logger = logging.getLogger(__name__)
 class UserSvc:
 
     @classmethod
-    def _active_users_query(cls):
+    def _active_users_query(cls, id_only: bool = False):
         """
         Internal helper: Returns a Select object pre-filtered for active users.
+
+        Args:
+            id_only: Defaults to false. True if only a list of
+            IDs are needed.
         """
-        return db.select(User)
+        if id_only:
+            stmt = db.select(User.id)
+        else:
+            stmt = db.select(User)
+
+        return stmt
 
     @classmethod
     def _existing_user_query(cls, email: str | None = None, username: str | None = None) -> User | None:
@@ -131,7 +140,7 @@ class UserSvc:
         return db.session.execute(stmt).scalar_one_or_none()
 
     @classmethod
-    def fetch_all_guest_accounts(cls, cut_off_hours: int = 24) -> list[User]:
+    def fetch_all_guest_accounts_ids(cls, cut_off_hours: int = 24) -> list[User]:
         """
         Fetches all expired guest accounts in the database.
 
@@ -150,7 +159,7 @@ class UserSvc:
             User.is_guest
         ]
 
-        stmt = cls._active_users_query().where(*conditions)
+        stmt = cls._active_users_query(id_only=True).where(*conditions)
 
         return db.session.scalars(stmt).all()
 
