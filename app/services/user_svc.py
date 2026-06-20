@@ -1,6 +1,6 @@
 from psycopg2._psycopg import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import or_
+from sqlalchemy import or_, select, delete
 from datetime import datetime, timedelta, timezone
 from app.extensions import db
 from app.models import User
@@ -175,6 +175,31 @@ class UserSvc:
             raise AuthenticationError("Invalid email/username or password.")
 
         return user
+
+    @classmethod
+    def delete_guest_accounts(cls, retention_window: int = 24) -> int:
+
+        ids_to_delete = cls.fetch_all_guest_accounts_ids(retention_window)
+
+        if not ids_to_delete:
+            return 0
+
+        delete_stmt = (
+            delete(User)
+            .where(User.id.in_(ids_to_delete))
+            .execution_options(synchronize_session="fetch")
+        )
+
+        try:
+            result = db.session.execute(delete_stmt)
+            db.session.commit()
+        except IntegrityError as e:
+            logger.error(f"Unable to delete guest users: {e}")
+
+            db.session.rollback()
+            raise ValueError("Unable to delete guest users.")
+
+        return result.rowcount
 
 
 class DuplicateUserError(Exception):
