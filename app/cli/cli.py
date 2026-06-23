@@ -13,7 +13,7 @@ def delete_guest_accounts_command(hours: int):
     Args:
         hours: The number of hours to retain guest data.
     """
-    # Click's 'required=False' passes None if the user forgets the argument
+
     if hours is None:
         click.echo("Please provide up to how many hours you'd like to retain. Example: flask delete-guest-accounts 24")
         return

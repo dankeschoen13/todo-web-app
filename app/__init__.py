@@ -16,4 +16,7 @@ def create_app(config_class=Config):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
 
+    from app.cli import delete_guest_accounts_command
+    app.cli.add_command(delete_guest_accounts_command) # type: ignore
+
     return app
