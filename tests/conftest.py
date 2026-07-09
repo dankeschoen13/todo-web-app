@@ -27,7 +27,9 @@ def app():
     """
     app = create_app(test_config={
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "postgresql://marcobernacer@localhost:5432/test_db"
+        "SQLALCHEMY_DATABASE_URI": "postgresql://marcobernacer@localhost:5432/test_db",
+        "WTF_CSRF_ENABLED": False,
+        "SECRET_KEY": "testing-key"
     })
 
     with app.app_context():
