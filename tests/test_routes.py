@@ -27,6 +27,7 @@ class TestIndexRoute:
         # Verify the database objects successfully rendered in the HTML
         assert b"Groceries" in response.data
         assert b"Project Milestones" in response.data
+        assert b"Buy milk" in response.data
 
 
 
