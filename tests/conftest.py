@@ -51,6 +51,18 @@ def client(app):
 
 
 @pytest.fixture
+def auth_client(client, seed_data):
+    """
+    A test client that comes pre-logged in as the seeded user.
+    """
+    client.post('/api/login', json={
+        'identifier': 'test@example.com',
+        'password': 'password123'
+    })
+    return client
+
+
+@pytest.fixture
 def seed_data(app):
     """
     Seed test database with mock data for smooth integration testing.
