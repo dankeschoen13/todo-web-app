@@ -84,3 +84,5 @@ def seed_data(app):
     db.session.commit()
 
     print("Database seeded successfully!")
+
+    return test_user
