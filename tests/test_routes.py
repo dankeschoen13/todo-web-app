@@ -41,12 +41,12 @@ class TestIndexRoute:
 class TestListRoutes:
     """Tests for the List creation and management API endpoints."""
 
-    def test_create_list_success(self, client, seed_data):
+    def test_create_list_success(self, auth_client, seed_data):
         """
         Verifies that a logged-in user can successfully create a new task list.
 
         Steps:
-        1. Authenticate the test client.
+        1. Authenticate the test client (auth_client fixture).
         2. Record the initial count of lists in the database.
         3. Make a POST request to '/api/new-list' with a valid JSON payload.
         4. Assert the API returns a 200 OK status.
@@ -54,16 +54,11 @@ class TestListRoutes:
         6. Verify the newly created list exists and belongs to the authenticated user.
         """
         # Arrange
-        client.post('/api/login', json={
-            'identifier': 'test@example.com',
-            'password': 'password123'
-        })
-
         stmt = select(func.count()).select_from(List)
         initial_count = db.session.scalar(stmt)
 
         # Act
-        response = client.post('/api/new-list', json={
+        response = auth_client.post('/api/new-list', json={
             'title': 'Tech Stacks to Learn'
         })
 
@@ -79,7 +74,7 @@ class TestListRoutes:
         assert new_list.author_id == seed_data.id
 
     @patch('app.routes.main.ListSvc.create_list')
-    def test_create_list_error(self, mock_svc, client):
+    def test_create_list_error(self, mock_svc, auth_client):
         """
         Verifies the API handles service-level errors gracefully without crashing.
 
@@ -94,7 +89,7 @@ class TestListRoutes:
         mock_svc.side_effect = ValueError("Unable to create list")
 
         # Act
-        response = client.post('/api/new-list', json={
+        response = auth_client.post('/api/new-list', json={
             'title': 'Tech Stacks to Learn'
         })
 
