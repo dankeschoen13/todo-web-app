@@ -103,7 +103,62 @@ class TestListRoutes:
 
         assert new_list is None
 
+    def test_edit_list_success(self, auth_client, seed_data):
+        """
+        Verifies that a logged-in user can successfully update the title of an existing list.
 
+        Steps:
+        1. Retrieve an existing list from the database and store its initial title.
+        2. Make a PATCH request to the edit endpoint with a new title payload.
+        3. Assert the API returns a 204 No Content status with an empty body.
+        4. Refresh the database object to pull the latest state.
+        5. Assert the title was mutated correctly and no longer matches the initial title.
+        """
+        # Arrange
+        list_to_edit = db.session.scalar(select(List).where(List.id == 1))
+        initial_title = list_to_edit.title
 
+        # Act
+        response = auth_client.patch('/api/lists/1/title', json={
+            'title': 'Camping Checklist'
+        })
 
+        # Assert
+        assert response.status_code == 204
+        assert response.data == b""
 
+        # Refresh the original object to grab the latest DB state
+        db.session.refresh(list_to_edit)
+
+        assert list_to_edit.title == 'Camping Checklist'
+        assert list_to_edit.title != initial_title
+
+    @patch('app.routes.main.ListSvc.update_list')
+    def test_edit_list_error(self, mock_svc, auth_client):
+        """
+        Verifies that the API handles service-level validation errors gracefully when editing a list.
+
+        Steps:
+        1. Mock the ListSvc.update_list method to force a ValueError.
+        2. Make a PATCH request to the edit endpoint with a new title payload.
+        3. Assert the API catches the error and returns a 400 Bad Request status.
+        4. Assert the JSON response contains the specific error message.
+        5. Query the database to verify the title change was not applied.
+        """
+        # Arrange
+        mock_svc.side_effect = ValueError("Unable to edit list title")
+
+        # Act
+        response = auth_client.patch('/api/lists/1/title', json={
+            'title': 'Camping Checklist'
+        })
+
+        # Assert
+        assert response.status_code == 400
+        assert response.get_json() == {"error": "Unable to edit list title"}
+
+        edited_list = db.session.scalar(
+            select(List).filter_by(title='Camping Checklist')
+        )
+
+        assert edited_list is None
