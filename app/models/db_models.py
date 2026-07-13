@@ -31,8 +31,13 @@ class User(db.Model):
     )
 
     authored_lists: Mapped[list["List"]] = relationship(
-        back_populates="author",
-        cascade="all, delete-orphan",
+        back_populates='author',
+        cascade='all, delete-orphan',
+        lazy=True, passive_deletes=True
+    )
+    authored_tasks: Mapped[list["Task"]] = relationship(
+        back_populates='author',
+        cascade='all, delete-orphan',
         lazy=True, passive_deletes=True
     )
 
@@ -71,7 +76,6 @@ def load_user(user_id) -> User:
     return db.session.get(User, int(user_id))
 
 
-
 class List(db.Model):
     __tablename__ = 'lists'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -93,11 +97,10 @@ class List(db.Model):
     )
     # children:
     tasks: Mapped[list["Task"]] = relationship(
-        back_populates="parent_list",
-        cascade="all, delete-orphan",
+        back_populates='parent_list',
+        cascade='all, delete-orphan',
         lazy=True, passive_deletes=True
     )
-
 
 
 class Task(db.Model):
@@ -122,10 +125,16 @@ class Task(db.Model):
         default=False,
         nullable=False
     )
-    # parent:
+    # parents:
     parent_list: Mapped[List] = relationship(back_populates='tasks')
     parent_list_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey('lists.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    author: Mapped[User] = relationship(back_populates='authored_tasks')
+    author_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False
     )
