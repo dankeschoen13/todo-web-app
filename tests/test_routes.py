@@ -115,11 +115,13 @@ class TestListRoutes:
         5. Assert the title was mutated correctly and no longer matches the initial title.
         """
         # Arrange
-        list_to_edit = db.session.scalar(select(List).where(List.id == 1))
-        initial_title = list_to_edit.title
+        list_id = 1
+        list_to_edit = db.session.get(List, list_id)
+
+        original_title = list_to_edit.title
 
         # Act
-        response = auth_client.patch('/api/lists/1/title', json={
+        response = auth_client.patch(f'/api/lists/{list_id}/title', json={
             'title': 'Camping Checklist'
         })
 
@@ -130,8 +132,8 @@ class TestListRoutes:
         # Refresh the original object to grab the latest DB state
         db.session.refresh(list_to_edit)
 
+        assert list_to_edit.title != original_title
         assert list_to_edit.title == 'Camping Checklist'
-        assert list_to_edit.title != initial_title
 
     @patch('app.routes.main.ListSvc.update_list')
     def test_edit_list_error(self, mock_svc, auth_client):
@@ -146,10 +148,15 @@ class TestListRoutes:
         5. Query the database to verify the title change was not applied.
         """
         # Arrange
+        list_id = 1
+        list_to_edit = db.session.get(List, list_id)
+
+        original_title = list_to_edit.title
+
         mock_svc.side_effect = ValueError("Unable to edit list title")
 
         # Act
-        response = auth_client.patch('/api/lists/1/title', json={
+        response = auth_client.patch(f'/api/lists/{list_id}/title', json={
             'title': 'Camping Checklist'
         })
 
@@ -157,8 +164,57 @@ class TestListRoutes:
         assert response.status_code == 400
         assert response.get_json() == {"error": "Unable to edit list title"}
 
-        edited_list = db.session.scalar(
-            select(List).filter_by(title='Camping Checklist')
-        )
+        db.session.refresh(list_to_edit)
 
-        assert edited_list is None
+        assert list_to_edit.title == original_title
+        assert list_to_edit.title != 'Camping Checklist'
+
+    def test_delete_list_success(self, auth_client):
+        """
+        Verifies that the API successfully deletes a list and its database record.
+
+        Steps:
+        1. Define the target list ID for deletion.
+        2. Make a DELETE request to the delete endpoint.
+        3. Assert the API returns a 204 No Content status code.
+        4. Assert the response data is empty.
+        5. Query the database by ID to verify the list record has been removed.
+        """
+        # Arrange
+        list_id = 1
+
+        # Act
+        response = auth_client.delete(f'/api/lists/{list_id}/delete')
+
+        # Assert
+        assert response.status_code == 204
+        assert response.data == b""
+
+        deleted_list = db.session.get(List, list_id)
+        assert deleted_list is None
+
+    @patch('app.routes.main.ListSvc.delete_list')
+    def test_delete_list_error(self, mock_svc, auth_client):
+        """
+        Verifies that the API handles service-level errors gracefully when deleting a list.
+
+        Steps:
+        1. Mock the ListSvc.delete_list method to force a ValueError.
+        2. Make a DELETE request to the delete endpoint.
+        3. Assert the API catches the error and returns a 400 Bad Request status.
+        4. Assert the JSON response contains the specific error message.
+        5. Query the database by ID to verify the list record was not deleted.
+        """
+        # Arrange
+        mock_svc.side_effect = ValueError("Unable to delete list.")
+        list_id = 1
+
+        # Act
+        response = auth_client.delete(f'/api/lists/{list_id}/delete')
+
+        # Assert
+        assert response.status_code == 400
+        assert response.get_json() == {"error": "Unable to delete list."}
+
+        list_to_delete = db.session.get(List, list_id)
+        assert list_to_delete is not None
