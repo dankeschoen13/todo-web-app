@@ -93,10 +93,14 @@ class ListSvc:
         return db.session.execute(stmt).scalar_one_or_none()
 
     @classmethod
-    def create_task(cls, list_id: int, content: str) -> List | None:
+    def create_task(cls, author: User, list_id: int, content: str) -> List | None:
         parent_list = cls.get_list_by_id(list_id)
 
-        new_task = Task(parent_list=parent_list, content=content)
+        new_task = Task(
+            author=author,
+            parent_list=parent_list,
+            content=content
+        )
 
         try:
             db.session.add(new_task)

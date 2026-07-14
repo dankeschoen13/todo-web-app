@@ -59,7 +59,7 @@ def create_task(list_id):
     content = data.get('content')
 
     try:
-        new_task = ListSvc.create_task(list_id, content)
+        new_task = ListSvc.create_task(current_user, list_id, content)
         return render_template(
             'components/task-item.html',
             task=new_task,
