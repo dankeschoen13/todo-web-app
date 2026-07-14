@@ -86,10 +86,10 @@ def seed_data(app):
     db.session.commit()
 
     tasks = [
-        Task(content="Buy milk", is_completed=False, parent_list_id=list_1.id),
-        Task(content="Buy eggs", is_completed=True, parent_list_id=list_1.id),
-        Task(content="Write unit tests", is_completed=False, parent_list_id=list_2.id),
-        Task(content="Setup database seeding", is_completed=True, parent_list_id=list_2.id),
+        Task(content="Buy milk", is_completed=False, parent_list_id=list_1.id, author_id=test_user.id),
+        Task(content="Buy eggs", is_completed=True, parent_list_id=list_1.id, author_id=test_user.id),
+        Task(content="Write unit tests", is_completed=False, parent_list_id=list_2.id, author_id=test_user.id),
+        Task(content="Setup database seeding", is_completed=True, parent_list_id=list_2.id, author_id=test_user.id),
     ]
 
     db.session.add_all(tasks)
