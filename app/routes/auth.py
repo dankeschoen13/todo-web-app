@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, jsonify, session, flash, redirect, url_for
+from flask import Blueprint, request, render_template, jsonify, session, flash, redirect, url_for, g
 from flask_login import login_user, current_user, logout_user
 from app.services import UserSvc, DuplicateUserError
 from app.services.user_svc import AuthenticationError
@@ -16,6 +16,8 @@ def guest_user_handler():
         guest_user, guest_uuid = UserSvc.create_guest()
         session['guest_uuid'] = guest_uuid
         login_user(guest_user)
+
+    g.current_user_id = current_user.id
 
 
 @auth_bp.get('/register')

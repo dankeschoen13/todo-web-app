@@ -1,4 +1,5 @@
 import logging
+from flask import has_request_context, g
 from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models import List, Task, User
@@ -11,7 +12,12 @@ class ListSvc:
     @classmethod
     def _active_list_query(cls):
 
-        return db.select(List)
+        query = db.select(List)
+
+        if has_request_context() and getattr(g, 'current_user_id', None):
+            query = query.where(List.author_id == g.current_user_id)
+
+        return query
 
     @classmethod
     def get_list_by_id(cls, list_id: int) -> List | None:
@@ -83,8 +89,13 @@ class ListSvc:
     # TASK METHODS
     @classmethod
     def _active_task_query(cls):
-        # todo: utilize flask g variable to dynamically turn on/off completed tasks
-        return db.select(Task)
+
+        query = db.select(Task)
+
+        if has_request_context() and getattr(g, 'current_user_id', None):
+            query = query.where(Task.author_id == g.current_user_id)
+
+        return query
 
     @classmethod
     def get_task_by_id(cls, task_id: int) -> List | None:
