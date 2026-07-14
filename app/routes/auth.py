@@ -7,18 +7,14 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.before_app_request
 def guest_user_handler():
-    endpoint = request.endpoint or ""
 
-    if endpoint.endswith('static'):
+    if (request.endpoint or "").endswith('static'):
         return
 
-    if not current_user.is_authenticated:
-        guest_user, guest_uuid = UserSvc.create_guest()
-        session['guest_uuid'] = guest_uuid
-        login_user(guest_user)
-
-    g.current_user_id = current_user.id
-
+    if current_user.is_authenticated:
+        g.current_user_id = current_user.id
+    else:
+        g.current_user_id = None
 
 @auth_bp.get('/register')
 def register_page():
