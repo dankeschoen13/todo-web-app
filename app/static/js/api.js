@@ -32,7 +32,7 @@ export async function apiFetch(endpoint, method = 'GET', body = null) {
         }
     }
     // 2. Prepare the options object & optionally add a body
-    const options = { method, headers };
+    const options = { method, credentials: 'same-origin', headers };
     if (body) options.body = JSON.stringify(body);
 
     // 3. Send a fetch request and await response
