@@ -290,3 +290,55 @@ class TestTaskRoutes:
 
         assert new_task is None
 
+    def test_complete_task_success(self, auth_client):
+        """
+        Verifies that the API successfully toggles a task's completion status.
+
+        Steps:
+        1. Query the database for an existing incomplete task.
+        2. Make a PATCH request to the task toggle endpoint.
+        3. Assert the API returns a 204 No Content status code.
+        4. Assert the response data is empty.
+        5. Refresh the task instance from the database and verify its `is_completed` attribute is now True.
+        """
+        # Arrange
+        stmt = select(Task).where(Task.is_completed == False).limit(1)
+        target_task = db.session.scalars(stmt).first()
+
+        # Act
+        response = auth_client.patch(f'/api/task/{target_task.id}/toggle')
+
+        # Assert
+        assert response.status_code == 204
+        assert response.data == b""
+
+        db.session.refresh(target_task)
+        assert target_task.is_completed == True
+
+    @patch('app.routes.main.ListSvc.complete_task')
+    def test_complete_task_error(self, mock_svc, auth_client):
+        """
+        Verifies that the API handles service-level errors gracefully when toggling a task.
+
+        Steps:
+        1. Query the database for an existing incomplete task.
+        2. Mock the ListSvc.complete_task method to force a ValueError.
+        3. Make a PATCH request to the task toggle endpoint.
+        4. Assert the API catches the error and returns a 400 Bad Request status.
+        5. Assert the JSON response contains the specific error message.
+        6. Refresh the task instance and verify its `is_completed` attribute remains False.
+        """
+        # Arrange
+        stmt = select(Task).where(Task.is_completed == False).limit(1)
+        target_task = db.session.scalars(stmt).first()
+        mock_svc.side_effect = ValueError('Unable to mark task as complete')
+
+        # Act
+        response = auth_client.patch(f'/api/task/{target_task.id}/toggle')
+
+        # Assert
+        assert response.status_code == 400
+        assert response.get_json() == {'error': 'Unable to mark task as complete'}
+
+        db.session.refresh(target_task)
+        assert target_task.is_completed == False
