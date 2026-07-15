@@ -157,7 +157,7 @@ class ListSvc:
             db.session.commit()
 
         except IntegrityError as e:
-            logger.error(f"Unable to mark task as complete: {e}")
+            logger.error(f"Unable to delete task: {e}")
 
             db.session.rollback()
-            raise ValueError("Unable to mark task as complete")
+            raise ValueError("Unable to delete task")
