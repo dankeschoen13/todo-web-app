@@ -342,3 +342,54 @@ class TestTaskRoutes:
 
         db.session.refresh(target_task)
         assert target_task.is_completed == False
+
+    def test_delete_task_success(self, auth_client):
+        """
+        Verifies that the API successfully deletes a task and its database record.
+
+        Steps:
+        1. Define the target task ID for deletion.
+        2. Make a DELETE request to the task deletion endpoint.
+        3. Assert the API returns a 204 No Content status code.
+        4. Assert the response data is empty.
+        5. Query the database by ID to verify the task record has been removed.
+        """
+        # Arrange
+        task_id = 1
+
+        # Act
+        response = auth_client.delete(f'/api/task/{task_id}/delete')
+
+        # Assert
+        assert response.status_code == 204
+        assert response.data == b""
+
+        deleted_task = db.session.get(Task, task_id)
+        assert deleted_task is None
+
+    @patch('app.routes.main.ListSvc.delete_task')
+    def test_delete_task_error(self, mock_svc, auth_client):
+        """
+        Verifies that the API handles service-level errors gracefully when deleting a task.
+
+        Steps:
+        1. Mock the ListSvc.delete_task method to force a ValueError.
+        2. Make a DELETE request to the task deletion endpoint.
+        3. Assert the API catches the error and returns a 400 Bad Request status.
+        4. Assert the JSON response contains the specific error message.
+        5. Query the database by ID to verify the task record was not deleted.
+        """
+        # Arrange
+        mock_svc.side_effect = ValueError("Unable to delete task.")
+        task_id = 1
+
+        # Act
+        response = auth_client.delete(f'/api/task/{task_id}/delete')
+
+        # Assert
+        assert response.status_code == 400
+        assert response.get_json() == {"error": "Unable to delete task."}
+
+        task_to_delete = db.session.get(Task, task_id)
+        assert task_to_delete is not None
+
