@@ -118,10 +118,10 @@ class ListSvc:
             db.session.commit()
 
         except IntegrityError as e:
-            logger.error(f"Unable to create list: {e}")
+            logger.error(f"Unable to create task: {e}")
 
             db.session.rollback()
-            raise ValueError("Unable to create list")
+            raise ValueError("Unable to create task")
 
         return new_task
 
