@@ -1,6 +1,6 @@
 from sqlalchemy import select, func
 from unittest.mock import patch
-from app.models import List
+from app.models import List, Task
 from app.extensions import db
 
 class TestIndexRoute:
@@ -218,3 +218,75 @@ class TestListRoutes:
 
         list_to_delete = db.session.get(List, list_id)
         assert list_to_delete is not None
+
+
+class TestTaskRoutes:
+    """Tests for the Task creation and management API endpoints."""
+
+    def test_create_task_success(self, auth_client, seed_data):
+        """
+        Verifies that the API successfully creates a new task and correctly associates it with a list and author.
+
+        Steps:
+        1. Query the initial count of tasks belonging to the target list.
+        2. Make a POST request to the task creation endpoint with a valid JSON payload.
+        3. Assert the API returns a 200 OK status code.
+        4. Assert the total task count for the target list has incremented by 1.
+        5. Query the database to verify the new task exists with the correct content, parent list ID, and author ID.
+        """
+        # Arrange
+        target_list_id = 1
+
+        stmt = select(func.count()).select_from(Task).where(
+            Task.parent_list_id == target_list_id
+        )
+        initial_count = db.session.scalar(stmt)
+
+        # Act
+        response = auth_client.post(f'/api/lists/{target_list_id}/task', json={
+            'content': 'Buy Tomatoes'
+        })
+
+        # Assert
+        assert response.status_code == 200
+        assert db.session.scalar(stmt) == initial_count + 1
+
+        new_task = db.session.scalar(
+            select(Task).filter_by(content='Buy Tomatoes')
+        )
+
+        assert new_task is not None
+        assert new_task.parent_list_id == target_list_id
+        assert new_task.author_id == seed_data.id
+
+    @patch('app.routes.main.ListSvc.create_task')
+    def test_create_task_error(self, mock_svc, auth_client):
+        """
+        Verifies that the API handles service-level errors gracefully when creating a task.
+
+        Steps:
+        1. Mock the ListSvc.create_task method to force a ValueError.
+        2. Make a POST request to the task creation endpoint with a JSON payload.
+        3. Assert the API catches the error and returns a 400 Bad Request status.
+        4. Assert the JSON response contains the specific error message.
+        5. Query the database to verify the task was not created.
+        """
+        # Arrange
+        mock_svc.side_effect = ValueError("Unable to create task")
+        target_list_id = 1
+
+        # Act
+        response = auth_client.post(f'/api/lists/{target_list_id}/task', json={
+            'content': 'Buy Tomatoes'
+        })
+
+        # Assert
+        assert response.status_code == 400
+        assert response.get_json() == {"error": "Unable to create task"}
+
+        new_task = db.session.scalar(
+            select(Task).filter_by(content='Buy Tomatoes')
+        )
+
+        assert new_task is None
+
