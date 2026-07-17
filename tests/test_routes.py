@@ -1,9 +1,54 @@
 from sqlalchemy import select, func
 from unittest.mock import patch
-from app.models import List, Task
+from app.models import List, Task, User
 from app.extensions import db
 
 class TestIndexRoute:
+
+    def test_index_route_anon_view(self, client):
+        """
+        Verifies that an anonymous visitor sees the registration and login prompts on the index page.
+
+        Steps:
+        1. Make a GET request to the index route without authentication.
+        2. Assert the API returns a 200 OK status code.
+        3. Assert the response HTML contains the "Sign In" text/button.
+        4. Assert the response HTML contains the "Register" text/button.
+        """
+        # Act
+        response = client.get('/')
+
+        # Assert
+        assert response.status_code == 200
+        assert b"Sign In" in response.data
+        assert b"Register" in response.data
+
+    def test_index_route_guest_view(self, client, seed_data):
+        """
+        Verifies that a logged-in guest user still sees the registration and login prompts.
+
+        Steps:
+        1. Make a POST request to the login API to authenticate as the seeded guest account.
+        2. Assert the login request is successful (200 OK).
+        3. Make a GET request to the index route using the authenticated client session.
+        4. Assert the API returns a 200 OK status code.
+        5. Assert the response HTML contains the "Sign In" text/button.
+        6. Assert the response HTML contains the "Register" text/button.
+        """
+        # Arrange
+        login_response = client.post('/api/login', json={
+            'identifier': 'guest_account',
+            'password': 'password456'
+        })
+        assert login_response.status_code == 200
+
+        # Act
+        response = client.get('/')
+
+        # Assert
+        assert response.status_code == 200
+        assert b"Sign In" in response.data
+        assert b"Register" in response.data
 
     def test_index_route_displays_lists(self, client, seed_data):
         """
@@ -71,7 +116,7 @@ class TestListRoutes:
         )
 
         assert new_list is not None
-        assert new_list.author_id == seed_data.id
+        assert new_list.author_id == seed_data[0].id
 
     @patch('app.routes.main.ListSvc.create_list')
     def test_create_list_error(self, mock_svc, auth_client):
@@ -257,7 +302,7 @@ class TestTaskRoutes:
 
         assert new_task is not None
         assert new_task.parent_list_id == target_list_id
-        assert new_task.author_id == seed_data.id
+        assert new_task.author_id == seed_data[0].id
 
     @patch('app.routes.main.ListSvc.create_task')
     def test_create_task_error(self, mock_svc, auth_client):
@@ -392,4 +437,21 @@ class TestTaskRoutes:
 
         task_to_delete = db.session.get(Task, task_id)
         assert task_to_delete is not None
+
+
+# class TestAuthRoutes:
+#
+#     def test_register_page_anons_and_guests_success(self, client, seed_data):
+#
+#         response = client.get('/register')
+#
+#         # Assert
+#         assert response.status_code == 200
+#
+#         # Verify the database objects successfully rendered in the HTML
+#         assert b"Username" in response.data
+#         assert b"Confirm Password" in response.data
+#         assert b"Sign Up" in response.data
+#
+#     def test_register_page_blocks_real_users_success(self, auth_client, seed_data):
 
