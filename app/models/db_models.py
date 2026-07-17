@@ -64,12 +64,13 @@ class User(db.Model):
         """
         return str(self.email).endswith('@temp.local')
 
+    # noinspection PyMethodParameters
     @is_guest.expression
-    def is_guest(self):
+    def is_guest(cls):
         """
         Used by SQLAlchemy to build the SQL WHERE clause.
         """
-        return self.email.endswith('@temp.local')
+        return cls.email.endswith('@temp.local')
 
 @login_manager.user_loader
 def load_user(user_id) -> User:
