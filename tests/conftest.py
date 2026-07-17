@@ -1,3 +1,5 @@
+import email
+
 from werkzeug.security import generate_password_hash
 import pytest
 from app import create_app
@@ -69,27 +71,26 @@ def seed_data(app):
 
     Creates mock user first, then lists and tasks.
     """
-    print("Creating mock user...")
-    test_user = User(
-        username="test_user",
-        email="test@example.com",
-        password=generate_password_hash("password123")
-    )
-    db.session.add(test_user)
+    print("Creating mock users...")
+    test_users = [
+        User(username="test_user", email="test@example.com", password=generate_password_hash("password123")),
+        User(username="guest_account", email="guest_account@temp.local", password=generate_password_hash("password456"))
+    ]
+    db.session.add_all(test_users)
     db.session.commit()
 
     print("Creating mock lists and tasks...")
-    list_1 = List(title="Groceries", author_id=test_user.id)
-    list_2 = List(title="Project Milestones", author_id=test_user.id)
+    list_1 = List(title="Groceries", author_id=test_users[0].id)
+    list_2 = List(title="Project Milestones", author_id=test_users[0].id)
 
     db.session.add_all([list_1, list_2])
     db.session.commit()
 
     tasks = [
-        Task(content="Buy milk", is_completed=False, parent_list_id=list_1.id, author_id=test_user.id),
-        Task(content="Buy eggs", is_completed=True, parent_list_id=list_1.id, author_id=test_user.id),
-        Task(content="Write unit tests", is_completed=False, parent_list_id=list_2.id, author_id=test_user.id),
-        Task(content="Setup database seeding", is_completed=True, parent_list_id=list_2.id, author_id=test_user.id),
+        Task(content="Buy milk", is_completed=False, parent_list_id=list_1.id, author_id=test_users[0].id),
+        Task(content="Buy eggs", is_completed=True, parent_list_id=list_1.id, author_id=test_users[0].id),
+        Task(content="Write unit tests", is_completed=False, parent_list_id=list_2.id, author_id=test_users[0].id),
+        Task(content="Setup database seeding", is_completed=True, parent_list_id=list_2.id, author_id=test_users[0].id),
     ]
 
     db.session.add_all(tasks)
@@ -97,4 +98,4 @@ def seed_data(app):
 
     print("Database seeded successfully!")
 
-    return test_user
+    return test_users
