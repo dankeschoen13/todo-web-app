@@ -1,5 +1,3 @@
-import email
-
 from werkzeug.security import generate_password_hash
 import pytest
 from app import create_app
@@ -26,10 +24,12 @@ def app():
     Teardown:
         - Cleans up the database session.
         - Drops all tables to ensure a clean slate for subsequent tests.
+
+    Test Postgres DB: "postgresql://marcobernacer@localhost:5432/test_db"
     """
     app = create_app(test_config={
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "postgresql://marcobernacer@localhost:5432/test_db",
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "WTF_CSRF_ENABLED": False,
         "SECRET_KEY": "testing-key"
     })
@@ -72,10 +72,20 @@ def seed_data(app):
     Creates mock user first, then lists and tasks.
     """
     print("Creating mock users...")
+    print("Creating mock users...")
     test_users = [
-        User(username="test_user", email="test@example.com", password=generate_password_hash("password123")),
-        User(username="guest_account", email="guest_account@temp.local", password=generate_password_hash("password456"))
+        User(
+            username="test_user",
+            email="test@example.com",
+            password=generate_password_hash("password123", method="pbkdf2:sha256:1")
+        ),
+        User(
+            username="guest_account",
+            email="guest_account@temp.local",
+            password=generate_password_hash("password456", method="pbkdf2:sha256:1")
+        )
     ]
+
     db.session.add_all(test_users)
     db.session.commit()
 
