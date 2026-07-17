@@ -118,6 +118,42 @@ class TestListRoutes:
         assert new_list is not None
         assert new_list.author_id == seed_data[0].id
 
+    def test_create_list_route_creates_guest_account(self, client, seed_data):
+        """
+        Verifies that creating a new list while unauthenticated automatically provisions a guest account.
+
+        Steps:
+        1. Query the initial total count of users in the database.
+        2. Make a POST request to the new list creation endpoint with a title payload.
+        3. Assert the API returns a 200 OK status code.
+        4. Assert the total user count has incremented by exactly 1.
+        5. Query the database for the newly created list by its title.
+        6. Assert the list exists and the title matches.
+        7. Query the user who authored the list and assert their `is_guest` property is True.
+        """
+        # Arrange
+        stmt = select(func.count()).select_from(User)
+        initial_user_count = db.session.scalar(stmt)
+
+        # Act
+        response = client.post('/api/new-list', json={
+            'title': 'New List'
+        })
+
+        # Assert
+        assert response.status_code == 200
+        assert db.session.scalar(stmt) == initial_user_count + 1
+
+        added_list = db.session.scalar(
+            select(List).where(List.title == 'New List').order_by(List.id.desc())
+        )
+
+        assert added_list is not None
+        assert added_list.title == 'New List'
+
+        new_author = db.session.get(User, added_list.author_id)
+        assert new_author.is_guest is True
+
     @patch('app.routes.main.ListSvc.create_list')
     def test_create_list_error(self, mock_svc, auth_client):
         """
