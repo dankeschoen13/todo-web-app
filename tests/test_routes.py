@@ -475,19 +475,73 @@ class TestTaskRoutes:
         assert task_to_delete is not None
 
 
-# class TestAuthRoutes:
-#
-#     def test_register_page_anons_and_guests_success(self, client, seed_data):
-#
-#         response = client.get('/register')
-#
-#         # Assert
-#         assert response.status_code == 200
-#
-#         # Verify the database objects successfully rendered in the HTML
-#         assert b"Username" in response.data
-#         assert b"Confirm Password" in response.data
-#         assert b"Sign Up" in response.data
-#
-#     def test_register_page_blocks_real_users_success(self, auth_client, seed_data):
+class TestAuthRoutes:
+
+    def test_register_page_anon_access(self, client, seed_data):
+        """
+        Verifies that an anonymous visitor can successfully access the registration page.
+
+        Steps:
+        1. Make a GET request to the registration route without authentication.
+        2. Assert the API returns a 200 OK status code.
+        3. Assert the response HTML contains the required form labels and buttons.
+        """
+        # Act
+        response = client.get('/register')
+
+        # Assert
+        assert response.status_code == 200
+
+        # Verify the form fields successfully rendered in the HTML
+        assert b"Username" in response.data
+        assert b"Confirm Password" in response.data
+        assert b"Sign Up" in response.data
+
+
+    def test_register_page_guest_access(self, client, seed_data):
+        """
+        Verifies that a logged-in guest user can access the registration page to upgrade their account.
+
+        Steps:
+        1. Make a POST request to the login API to authenticate as the seeded guest account.
+        2. Assert the login request is successful (200 OK).
+        3. Make a GET request to the registration route.
+        4. Assert the API returns a 200 OK status code.
+        5. Assert the response HTML contains the required form labels and buttons.
+        """
+        # Arrange
+        login_response = client.post('/api/login', json={
+            'identifier': 'guest_account',
+            'password': 'password456'
+        })
+        assert login_response.status_code == 200
+
+        # Act
+        response = client.get('/register')
+
+        # Assert
+        assert response.status_code == 200
+
+        # Verify the form fields successfully rendered in the HTML
+        assert b"Username" in response.data
+        assert b"Confirm Password" in response.data
+        assert b"Sign Up" in response.data
+
+
+    def test_register_route_redirects_authenticated_user(self, auth_client, seed_data):
+        """
+        Verifies that a fully authenticated user is blocked from the register page and redirected.
+
+        Steps:
+        1. Make a GET request to the registration route using the pre-authenticated client fixture.
+        2. Assert the API returns a 302 Found (Redirect) status code.
+        3. Assert the response location header points directly to the main index route.
+        """
+        # Act
+        response = auth_client.get('/register')
+
+        # Assert
+        assert response.status_code == 302
+        assert response.location == '/'
+
 
