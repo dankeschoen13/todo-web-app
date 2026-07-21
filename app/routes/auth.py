@@ -19,7 +19,7 @@ def guest_user_handler():
 @auth_bp.get('/register')
 def register_page():
     if current_user.is_authenticated and not current_user.is_guest:
-        flash('You are already logged in', 'info')
+        flash('You are already logged in!', 'info')
         return redirect(url_for('main.index'))
 
     return render_template('register.html')

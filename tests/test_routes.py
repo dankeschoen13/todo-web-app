@@ -1,4 +1,5 @@
 from sqlalchemy import select, func
+from flask_login import current_user
 from unittest.mock import patch
 from app.models import List, Task, User
 from app.extensions import db
@@ -497,7 +498,6 @@ class TestAuthRoutes:
         assert b"Confirm Password" in response.data
         assert b"Sign Up" in response.data
 
-
     def test_register_page_guest_access(self, client, seed_data):
         """
         Verifies that a logged-in guest user can access the registration page to upgrade their account.
@@ -527,21 +527,77 @@ class TestAuthRoutes:
         assert b"Confirm Password" in response.data
         assert b"Sign Up" in response.data
 
-
     def test_register_route_redirects_authenticated_user(self, auth_client, seed_data):
         """
         Verifies that a fully authenticated user is blocked from the register page and redirected.
 
         Steps:
         1. Make a GET request to the registration route using the pre-authenticated client fixture.
-        2. Assert the API returns a 302 Found (Redirect) status code.
-        3. Assert the response location header points directly to the main index route.
+        2. Set follow_redirects=True to automatically fetch the redirect destination.
+        3. Assert the final API response returns a 200 OK status code.
+        4. Assert the final request path matches the main index route.
+        5. Assert the flashed warning message is rendered in the final HTML response.
         """
         # Act
-        response = auth_client.get('/register')
+        response = auth_client.get('/register', follow_redirects=True)
 
         # Assert
-        assert response.status_code == 302
-        assert response.location == '/'
+        # Check that we ultimately landed on a valid page
+        assert response.status_code == 200
+
+        # Verify the client was bounced to the index route
+        assert response.request.path == '/'
+
+        # Verify the flash message was successfully passed through the session and rendered
+        assert b"You are already logged in!" in response.data
+
+    def test_register_api_anon_user_success(self, client, seed_data, app):
+        """
+        Verifies that an anonymous user can successfully register an account via the API.
+
+        Steps:
+        1. Query the initial total count of users in the database.
+        2. Make a POST request to the registration API within a client context manager.
+        3. Assert the API returns a 201 Created status code.
+        4. Assert the JSON response contains the success message.
+        5. Assert the total user count incremented by exactly 1.
+        6. Query the database for the newly created user and verify the username matches.
+        7. Assert that the newly created user was automatically authenticated (logged in) during the request.
+        """
+        # Arrange
+        stmt = select(func.count()).select_from(User)
+        initial_count = db.session.scalar(stmt)
+
+        # Act - Wrap the request in a context manager to keep current_user alive
+        with client:
+            response = client.post('/api/register', json={
+                'email': 'new_account@gamil.com',
+                'password': 'password789',
+                'username': 'Steve Jobs'
+            })
+
+            # Assert
+            assert response.status_code == 201
+            assert response.get_json() == {"message": "User created successfully"}
+
+            assert db.session.scalar(stmt) == initial_count + 1
+
+            new_user = db.session.scalar(
+                select(User).where(User.email == "new_account@gamil.com")
+            )
+
+            assert new_user.username == 'Steve Jobs'
+
+            # Because we are inside 'with client:', the request context is preserved
+            assert current_user.is_authenticated
+            assert current_user.id == new_user.id
+
+
+
+
+
+
+
+
 
 
