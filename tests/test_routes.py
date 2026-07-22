@@ -498,7 +498,7 @@ class TestAuthRoutes:
         assert b"Confirm Password" in response.data
         assert b"Sign Up" in response.data
 
-    def test_register_page_guest_access(self, client, seed_data):
+    def test_register_page_guest_access(self, guest_client, seed_data):
         """
         Verifies that a logged-in guest user can access the registration page to upgrade their account.
 
@@ -509,15 +509,9 @@ class TestAuthRoutes:
         4. Assert the API returns a 200 OK status code.
         5. Assert the response HTML contains the required form labels and buttons.
         """
-        # Arrange
-        login_response = client.post('/api/login', json={
-            'identifier': 'guest_account',
-            'password': 'password456'
-        })
-        assert login_response.status_code == 200
 
         # Act
-        response = client.get('/register')
+        response = guest_client.get('/register')
 
         # Assert
         assert response.status_code == 200
@@ -571,7 +565,7 @@ class TestAuthRoutes:
         # Act - Wrap the request in a context manager to keep current_user alive
         with client:
             response = client.post('/api/register', json={
-                'email': 'new_account@gamil.com',
+                'email': 'new_account@gmail.com',
                 'password': 'password789',
                 'username': 'Steve Jobs'
             })
@@ -588,11 +582,62 @@ class TestAuthRoutes:
 
             assert new_user.username == 'Steve Jobs'
 
-            # Because we are inside 'with client:', the request context is preserved
+            # Because we are inside 'with client:', the request context is preserved so we can
+            # reference the current_user object
             assert current_user.is_authenticated
             assert current_user.id == new_user.id
 
+    def test_register_api_guest_user_success(self, guest_client, seed_data):
+        """
+        Verifies that a guest user can successfully convert their account into a real account via
+        the register api.
 
+        Steps:
+        1. Query the ID of the seeded guest account and the total user count.
+        2. Make a POST request to the registration API within a client context manager.
+        3. Assert the API returns a 201 Created status code.
+        4. Assert the JSON response contains the success message.
+        5. Refresh the db session and assert the same guest account details were updated.
+        6. Assert that no new account was created by matching ID and total user count.
+        7. Assert the user is no longer flagged as a guest.
+        8. Assert that the newly converted user remains authenticated during the request.
+        """
+        # Arrange
+        stmt = select(User).where(User.email == seed_data[1].email)
+        guest_account = db.session.scalar(stmt)
+        id_prior_conversion = guest_account.id
+
+        initial_user_count = db.session.scalar(select(func.count()).select_from(User))
+
+        # Act
+        with guest_client:
+            response = guest_client.post('/api/register', json={
+                'email': 'converted_account@gmail.com',
+                'password': 'password789',
+                'username': 'Official Account'
+            })
+
+            # Assert
+            assert response.status_code == 201
+            assert response.get_json() == {"message": "User created successfully"}
+
+            # Sync Python object with new database state
+            db.session.refresh(guest_account)
+
+            # Verify credentials updated
+            assert guest_account.email == 'converted_account@gmail.com'
+            assert guest_account.username == 'Official Account'
+
+            # Verify it is the exact same row and no additional rows were created
+            assert guest_account.id == id_prior_conversion
+            assert db.session.scalar(select(func.count()).select_from(User)) == initial_user_count
+
+            # Verify the guest status was successfully revoked
+            assert guest_account.is_guest is False
+
+            # Verify session context
+            assert current_user.is_authenticated
+            assert current_user.id == guest_account.id
 
 
 
