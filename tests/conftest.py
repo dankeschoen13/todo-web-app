@@ -4,6 +4,7 @@ from app import create_app
 from app.extensions import db
 from app.models import User, List, Task
 
+GUEST_UUID = "dha3dn1xn0val4ksdnlk8x"
 
 @pytest.fixture
 def app():
@@ -55,12 +56,27 @@ def client(app):
 @pytest.fixture
 def auth_client(client, seed_data):
     """
-    A test client that comes pre-logged in as the seeded user.
+    A test client that comes pre-logged in as the seeded full user.
     """
     client.post('/api/login', json={
         'identifier': 'test@example.com',
         'password': 'password123'
     })
+    return client
+
+@pytest.fixture
+def guest_client(client, seed_data):
+    """
+    A test client that comes pre-logged in as a guest user account.
+    """
+    client.post('/api/login', json={
+        'identifier': 'guest_account@temp.local',
+        'password': 'password456'
+    })
+
+    with client.session_transaction() as sess:
+        sess['guest_uuid'] = GUEST_UUID
+
     return client
 
 
@@ -80,7 +96,7 @@ def seed_data(app):
             password=generate_password_hash("password123", method="pbkdf2:sha256:1")
         ),
         User(
-            username="guest_account",
+            username=f"guest_{GUEST_UUID}",
             email="guest_account@temp.local",
             password=generate_password_hash("password456", method="pbkdf2:sha256:1")
         )
