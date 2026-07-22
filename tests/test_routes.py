@@ -2,6 +2,7 @@ from sqlalchemy import select, func
 from flask_login import current_user
 from unittest.mock import patch
 from app.models import List, Task, User
+from app.services import DuplicateUserError
 from app.extensions import db
 
 class TestIndexRoute:
@@ -603,11 +604,13 @@ class TestAuthRoutes:
         8. Assert that the newly converted user remains authenticated during the request.
         """
         # Arrange
-        stmt = select(User).where(User.email == seed_data[1].email)
-        guest_account = db.session.scalar(stmt)
+        guest_account = db.session.scalar(
+            select(User).where(User.email == seed_data[1].email)
+        )
         id_prior_conversion = guest_account.id
 
-        initial_user_count = db.session.scalar(select(func.count()).select_from(User))
+        stmt = select(func.count()).select_from(User)
+        initial_user_count = db.session.scalar(stmt)
 
         # Act
         with guest_client:
@@ -630,7 +633,7 @@ class TestAuthRoutes:
 
             # Verify it is the exact same row and no additional rows were created
             assert guest_account.id == id_prior_conversion
-            assert db.session.scalar(select(func.count()).select_from(User)) == initial_user_count
+            assert db.session.scalar(stmt) == initial_user_count
 
             # Verify the guest status was successfully revoked
             assert guest_account.is_guest is False
@@ -639,10 +642,69 @@ class TestAuthRoutes:
             assert current_user.is_authenticated
             assert current_user.id == guest_account.id
 
+    @patch('app.routes.main.UserSvc.create_user')
+    def test_register_api_duplicate_user_error(self, mock_svc, client):
+        """
+        Verifies that the API handles duplicate user errors gracefully when registration fails.
 
+        Steps:
+        1. Mock the UserSvc.create_user method to force a custom DuplicateUserError.
+        2. Make a POST request to the user registration endpoint.
+        3. Assert the API catches the error and returns a 400 Bad Request status.
+        4. Assert the JSON response contains the specific error message.
+        5. Query the database to ensure no new account was added.
+        """
+        # Arrange
+        stmt = select(func.count()).select_from(User)
+        initial_count = db.session.scalar(stmt)
 
+        mock_svc.side_effect = DuplicateUserError("This email is already registered.", "email")
 
+        # Act
+        response = client.post('/api/register', json={
+            'email': 'new_account@gmail.com',
+            'password': 'password789',
+            'username': 'Steve Jobs'
+        })
 
+        # Assert
+        assert response.status_code == 400
+        assert response.get_json() == {
+            "error": "This email is already registered.", "field": "email"
+        }
 
+        assert db.session.scalar(stmt) == initial_count
 
+    @patch('app.routes.main.UserSvc.create_user')
+    def test_register_api_value_error(self, mock_svc, client):
+        """
+        Verifies that the API handles service-level errors gracefully when registration fails.
+
+        Steps:
+        1. Mock the UserSvc.create_user method to force a ValueError.
+        2. Make a POST request to the user registration endpoint.
+        3. Assert the API catches the error and returns a 500 Internal Server Error.
+        4. Assert the JSON response contains the specific error message.
+        5. Query the database to ensure no new account was added.
+        """
+        # Arrange
+        stmt = select(func.count()).select_from(User)
+        initial_count = db.session.scalar(stmt)
+
+        mock_svc.side_effect = ValueError("A database error occurred during registration.")
+
+        # Act
+        response = client.post('/api/register', json={
+            'email': 'new_account@gmail.com',
+            'password': 'password789',
+            'username': 'Steve Jobs'
+        })
+
+        # Assert
+        assert response.status_code == 500
+        assert response.get_json() == {
+            "error": "A database error occurred during registration.", "field": "global"
+        }
+
+        assert db.session.scalar(stmt) == initial_count
 
