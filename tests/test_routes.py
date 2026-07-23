@@ -760,14 +760,14 @@ class TestAuthRoutes:
         )
         # Act
         with client:
-            ep_response = client.post('/api/login', json={
+            response = client.post('/api/login', json={
                 'identifier': identifier,
                 'password': 'password123'
             })
 
             # Assert
-            assert ep_response.status_code == 200
-            assert ep_response.get_json() == {"message": "User logged in successfully"}
+            assert response.status_code == 200
+            assert response.get_json() == {"message": "User logged in successfully"}
 
             assert current_user.is_authenticated
             assert current_user.id == user_id
@@ -788,13 +788,13 @@ class TestAuthRoutes:
         identifier = 'test@example.com'
 
         with client:
-            ep_response = client.post('/api/login', json={
+            response = client.post('/api/login', json={
                 'identifier': identifier,
                 'password': 'password456'
             })
 
-            assert ep_response.status_code == 401
-            assert ep_response.get_json() == {"error": "Invalid email/username or password." }
+            assert response.status_code == 401
+            assert response.get_json() == {"error": "Invalid email/username or password." }
 
             assert not current_user.is_authenticated
 
@@ -818,15 +818,41 @@ class TestAuthRoutes:
         identifier = 'test@example.com'
 
         with guest_client:
-            ep_response = guest_client.post('/api/login', json={
+            response = guest_client.post('/api/login', json={
                 'identifier': identifier,
                 'password': 'password456'
             })
 
-            assert ep_response.status_code == 401
-            assert ep_response.get_json() == {"error": "Invalid email/username or password."}
+            assert response.status_code == 401
+            assert response.get_json() == {"error": "Invalid email/username or password."}
 
             assert current_user.is_authenticated
             assert current_user.id == guest_account_id
 
+    def test_logout_success(self, auth_client, seed_data):
+        """
+        Verifies that a fully authenticated user can successfully log out.
+
+        Steps:
+        1. Make a GET request to the index route using the pre-authenticated client.
+        2. Verify the initial state confirms the user is authenticated and is not a guest.
+        3. Make a GET request to the logout route with redirects enabled.
+        4. Assert the final API response returns a 200 OK status code.
+        5. Assert the client is successfully redirected to the main index route.
+        6. Assert the flashed logout message is rendered in the final HTML response.
+        7. Assert the session context has been cleared and the user is no longer authenticated.
+        """
+        with auth_client:
+            auth_client.get("/")
+
+            assert current_user.is_authenticated
+            assert current_user.is_guest is False
+
+            response = auth_client.get('/logout', follow_redirects=True)
+
+            assert response.status_code == 200
+            assert response.request.path == "/"
+            assert b"You have been logged out" in response.data
+
+            assert not current_user.is_authenticated
 
