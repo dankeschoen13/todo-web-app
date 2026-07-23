@@ -25,7 +25,7 @@ class TestIndexRoute:
         assert b"Sign In" in response.data
         assert b"Register" in response.data
 
-    def test_index_route_guest_view(self, client, seed_data):
+    def test_index_route_guest_view(self, guest_client, seed_data):
         """
         Verifies that a logged-in guest user still sees the registration and login prompts.
 
@@ -37,15 +37,9 @@ class TestIndexRoute:
         5. Assert the response HTML contains the "Sign In" text/button.
         6. Assert the response HTML contains the "Register" text/button.
         """
-        # Arrange
-        login_response = client.post('/api/login', json={
-            'identifier': 'guest_account',
-            'password': 'password456'
-        })
-        assert login_response.status_code == 200
 
         # Act
-        response = client.get('/')
+        response = guest_client.get('/')
 
         # Assert
         assert response.status_code == 200
@@ -478,6 +472,7 @@ class TestTaskRoutes:
 
 
 class TestAuthRoutes:
+    """Tests for the Account Creation and Authentication API endpoints."""
 
     def test_register_page_anon_access(self, client, seed_data):
         """
@@ -578,7 +573,7 @@ class TestAuthRoutes:
             assert db.session.scalar(stmt) == initial_count + 1
 
             new_user = db.session.scalar(
-                select(User).where(User.email == "new_account@gamil.com")
+                select(User).where(User.email == "new_account@gmail.com")
             )
 
             assert new_user.username == 'Steve Jobs'
@@ -707,4 +702,43 @@ class TestAuthRoutes:
         }
 
         assert db.session.scalar(stmt) == initial_count
+
+    def test_login_page_anon_access(self, client, seed_data):
+        """
+        Verifies that an anonymous visitor can successfully access the login page.
+
+        Steps:
+        1. Make a GET request to the registration route without authentication.
+        2. Assert the API returns a 200 OK status code.
+        3. Assert the response HTML contains the required form labels and buttons.
+        """
+        # Act
+        response = client.get('/login')
+
+        # Assert
+        assert response.status_code == 200
+
+        # Verify the form fields successfully rendered in the HTML
+        assert b"Username or email address" in response.data
+        assert b"Login to your account" in response.data
+
+    def test_login_page_guest_user_access(self, guest_client, seed_data):
+        """
+        Verifies that a visitor with a guest user account can successfully access the registration page.
+
+        Steps:
+        1. Make a GET request to the registration route with an authenticated guest user.
+        2. Assert the API returns a 200 OK status code.
+        3. Assert the response HTML contains the required form labels and buttons.
+        """
+        # Act
+        response = guest_client.get('/login')
+
+        # Assert
+        assert response.status_code == 200
+
+        # Verify the form fields successfully rendered in the HTML
+        assert b"Username or email address" in response.data
+        assert b"Login to your account" in response.data
+
 
