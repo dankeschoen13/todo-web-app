@@ -92,4 +92,4 @@ def logout():
         if next_page:
             return redirect(url_for(next_page))
 
-    return redirect(url_for('web.index'))
+    return redirect(url_for('main.index'))
