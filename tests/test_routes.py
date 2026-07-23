@@ -4,6 +4,8 @@ from unittest.mock import patch
 from app.models import List, Task, User
 from app.services import DuplicateUserError
 from app.extensions import db
+from app.services.user_svc import AuthenticationError
+
 
 class TestIndexRoute:
 
@@ -740,5 +742,91 @@ class TestAuthRoutes:
         # Verify the form fields successfully rendered in the HTML
         assert b"Username or email address" in response.data
         assert b"Login to your account" in response.data
+
+    def test_login_api_success(self, client, seed_data):
+        """
+        Verifies that a registered user can log in successfully.
+
+        Steps:
+        1. Query the ID of the account to log in and save it to a variable.
+        2. Send a login POST request to the API endpoint.
+        3. Assert the API returns a 200 OK status code.
+        4. Assert that the account successfully logged in my checking authentication status and matching ID.
+        """
+        # Arrange
+        identifier = 'test@example.com'
+        user_id = db.session.scalar(
+            select(User.id).where(User.email == identifier)
+        )
+        # Act
+        with client:
+            ep_response = client.post('/api/login', json={
+                'identifier': identifier,
+                'password': 'password123'
+            })
+
+            # Assert
+            assert ep_response.status_code == 200
+            assert ep_response.get_json() == {"message": "User logged in successfully"}
+
+            assert current_user.is_authenticated
+            assert current_user.id == user_id
+
+    @patch('app.routes.main.UserSvc.authenticate_user')
+    def test_login_api_authentication_error_anon_user(self, mock_svc, client, seed_data):
+        """
+        Verifies that the API handles service-level errors gracefully when login fails with anon user.
+
+        Steps:
+        1. Mock the `UserSvc.authenticate_user` service to force an AuthenticationError
+        2. Send a login POST request to the API endpoint.
+        3. Assert the API returns a 401 Unauthorized status code.
+        4. Assert that the account remains anonymous/unauthenticated.
+        """
+
+        mock_svc.side_effect = AuthenticationError("Invalid email/username or password.")
+        identifier = 'test@example.com'
+
+        with client:
+            ep_response = client.post('/api/login', json={
+                'identifier': identifier,
+                'password': 'password456'
+            })
+
+            assert ep_response.status_code == 401
+            assert ep_response.get_json() == {"error": "Invalid email/username or password." }
+
+            assert not current_user.is_authenticated
+
+    @patch('app.routes.main.UserSvc.authenticate_user')
+    def test_login_api_authentication_error_guest_user(self, mock_svc, guest_client, seed_data):
+        """
+        Verifies that the API handles service-level errors gracefully when login fails with guest user.
+
+        Steps:
+        1. Use the guest_client to create an active guest_user session.
+        2. Mock the `UserSvc.authenticate_user` service to force an AuthenticationError
+        3. Send a login POST request to the API endpoint.
+        3. Assert the API returns a 401 Unauthorized status code.
+        4. Assert that the account logged in remains to be the guest user account.
+        """
+
+        guest_account_id = db.session.scalar(
+            select(User.id).where(User.email == 'guest_account@temp.local')
+        )
+        mock_svc.side_effect = AuthenticationError("Invalid email/username or password.")
+        identifier = 'test@example.com'
+
+        with guest_client:
+            ep_response = guest_client.post('/api/login', json={
+                'identifier': identifier,
+                'password': 'password456'
+            })
+
+            assert ep_response.status_code == 401
+            assert ep_response.get_json() == {"error": "Invalid email/username or password."}
+
+            assert current_user.is_authenticated
+            assert current_user.id == guest_account_id
 
 
