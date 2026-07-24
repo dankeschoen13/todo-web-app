@@ -5,6 +5,7 @@ from app.models import List, Task, User
 from app.services import DuplicateUserError
 from app.extensions import db
 from app.services.user_svc import AuthenticationError
+from tests.conftest import auth_client
 
 
 class TestIndexRoute:
@@ -856,3 +857,52 @@ class TestAuthRoutes:
 
             assert not current_user.is_authenticated
 
+    def test_logout_redirect_for_guest_user(self, guest_client, seed_data):
+        """
+        Verifies that an active guest user attempting to access the logout route is redirected and their session is preserved.
+
+        Steps:
+        1. Query the database for the seeded guest account ID.
+        2. Make a GET request to the logout route using the guest client, following redirects.
+        3. Assert the API returns a 200 OK status code at the final destination.
+        4. Assert the client is redirected to the main index route.
+        5. Assert the 'Sign In' text is rendered in the HTML, verifying UI state.
+        6. Assert the session remains intact by verifying the user ID and guest status.
+        """
+        # Arrange
+        guest_account_id = db.session.scalar(
+            select(User.id).where(User.email == 'guest_account@temp.local')
+        )
+
+        # Act
+        with guest_client:
+            response = guest_client.get('/logout', follow_redirects=True)
+
+            # Assert
+            assert response.status_code == 200
+            assert response.request.path == "/"
+            assert b"Sign In" in response.data
+            assert current_user.id == guest_account_id
+            assert current_user.is_guest
+
+
+    def test_logout_redirect_for_anon_user(self, client, seed_data):
+        """
+        Verifies that an anonymous (unauthenticated) user attempting to access the logout route is safely redirected.
+
+        Steps:
+        1. Make a GET request to the logout route using an unauthenticated client, following redirects.
+        2. Assert the API returns a 200 OK status code at the final destination.
+        3. Assert the client is redirected to the main index route.
+        4. Assert the 'Sign In' text is rendered in the HTML, verifying UI state.
+        5. Assert the user remains safely unauthenticated.
+        """
+        # Act
+        with client:
+            response = client.get('/logout', follow_redirects=True)
+
+            # Assert
+            assert response.status_code == 200
+            assert response.request.path == "/"
+            assert b"Sign In" in response.data
+            assert current_user.is_authenticated is False
